@@ -1,0 +1,28 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "files": { "includes": ["src/**"] },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "recommended": true,
+        "useButtonType": "warn",
+        "useSemanticElements": "warn",
+        "noAriaHiddenOnFocusable": "warn",
+        "useAriaPropsSupportedByRole": "warn"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error",
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn"
+      },
+      "style": { "noNonNullAssertion": "warn", "noDescendingSpecificity": "off" },
+      "complexity": { "noImportantStyles": "off" },
+      "suspicious": { "noExplicitAny": "error" }
+    }
+  }
+}
