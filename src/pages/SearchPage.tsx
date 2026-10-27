@@ -1,12 +1,12 @@
 import { Disc3, RotateCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import AlbumCard from '../components/AlbumCard'
 import Avatar from '../components/Avatar'
 import { useResource } from '../hooks/useResource'
 import { useTrendingAlbums, type AlbumListState } from '../hooks/useTrendingAlbums'
 import { formatDuration } from '../lib/format'
-import { isAbortError, searchAlbums, searchArtists, searchTracks, searchUsers } from '../services/api'
+import { ALBUM_SEARCH_PAGE_SIZE, isAbortError, searchAlbums, searchArtists, searchTracks, searchUsers } from '../services/api'
 
 type Tab = 'albums' | 'artists' | 'tracks' | 'people'
 
@@ -89,19 +89,48 @@ function TrendingResults() {
 function AlbumResults({ query }: { query: string }) {
   const [results, setResults] = useState<AlbumListState>({ status: 'loading', albums: [] })
   const [attempt, setAttempt] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [moreError, setMoreError] = useState(false)
+  const [nextOffset, setNextOffset] = useState(ALBUM_SEARCH_PAGE_SIZE)
+  const currentQuery = useRef(query)
+  currentQuery.current = query
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the request on retry.
   useEffect(() => {
     const controller = new AbortController()
     // Keep the previous results visible (dimmed) while the new query loads.
     setResults((current) => ({ ...current, status: 'loading' }))
+    setMoreError(false)
     searchAlbums(query, controller.signal)
-      .then((albums) => setResults({ status: 'ready', albums }))
+      .then((albums) => {
+        setResults({ status: 'ready', albums })
+        setHasMore(albums.length >= ALBUM_SEARCH_PAGE_SIZE)
+        setNextOffset(ALBUM_SEARCH_PAGE_SIZE)
+      })
       .catch((error: unknown) => {
         if (!isAbortError(error)) setResults({ status: 'error', albums: [] })
       })
     return () => controller.abort()
   }, [query, attempt])
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setMoreError(false)
+    try {
+      const next = await searchAlbums(query, undefined, nextOffset)
+      if (currentQuery.current !== query) return
+      const known = new Set(results.albums.map((album) => album.id))
+      const fresh = next.filter((album) => !known.has(album.id))
+      setResults((current) => ({ ...current, albums: [...current.albums, ...fresh] }))
+      setNextOffset(nextOffset + ALBUM_SEARCH_PAGE_SIZE)
+      setHasMore(next.length >= ALBUM_SEARCH_PAGE_SIZE && fresh.length > 0)
+    } catch {
+      setMoreError(true)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const { status, albums } = results
   const heading = status === 'loading' ? 'Buscando álbuns...' : `${albums.length} ${albums.length === 1 ? 'álbum' : 'álbuns'} para “${query}”`
@@ -109,6 +138,8 @@ function AlbumResults({ query }: { query: string }) {
   return <div aria-busy={status === 'loading'}>
     <div className="section-heading"><div><p className="eyebrow">RESULTADOS</p><h1 className="page-title" aria-live="polite">{heading}</h1></div></div>
     <AlbumGrid status={status} albums={albums} onRetry={() => setAttempt((value) => value + 1)} />
+    {status === 'ready' && moreError && <p className="form-error" role="alert">Não foi possível carregar mais álbuns. Tente novamente.</p>}
+    {status === 'ready' && hasMore && <button type="button" className="secondary-button review-more" onClick={() => void loadMore()} disabled={loadingMore}>{loadingMore ? 'Carregando...' : 'Ver mais álbuns'}</button>}
   </div>
 }
 

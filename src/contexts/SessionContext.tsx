@@ -12,6 +12,7 @@ type SessionContextValue = {
   signUp: (username: string, email: string, password: string, confirmPassword: string) => Promise<ApiUser>
   signOut: () => Promise<void>
   setAvatarUrl: (url: string | null) => void
+  markEmailVerified: () => void
   retry: () => void
 }
 
@@ -90,7 +91,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <SessionContext.Provider value={{ user, avatarUrl, status, signIn, signUp, signOut, setAvatarUrl, retry }}>{children}</SessionContext.Provider>
+  const markEmailVerified = useCallback(() => setUser((current) => (current ? { ...current, emailVerified: true } : current)), [])
+
+  return <SessionContext.Provider value={{ user, avatarUrl, status, signIn, signUp, signOut, setAvatarUrl, markEmailVerified, retry }}>{children}</SessionContext.Provider>
 }
 
 export function useSession() {

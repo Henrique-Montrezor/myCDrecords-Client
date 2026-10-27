@@ -5,12 +5,9 @@ import { formatRelativeTime } from '../lib/format'
 import { getUserActivity, isAbortError } from '../services/api'
 import type { ApiActivity } from '../types/api'
 import ErrorBox from './ErrorBox'
+import Stars from './Stars'
 
 const PAGE_SIZE = 10
-
-function Stars({ rating }: { rating: number }) {
-  return <span className="review-stars" role="img" aria-label={`Nota ${rating} de 5`}>{[1, 2, 3, 4, 5].map((value) => <Star key={value} size={11} fill={value <= rating ? 'currentColor' : 'none'} />)}</span>
-}
 
 function ActivityItem({ item, username, isSelf }: { item: ApiActivity; username: string; isSelf: boolean }) {
   const albumPath = `/albums/${encodeURIComponent(String(item.album_id))}`

@@ -206,11 +206,54 @@ export type ApiReview = {
   created_at: string
   score?: number
   user_vote?: 1 | -1 | null
+  comment_count?: number
 }
 
-export type ApiFeedItem = ApiReview & {
-  event_type?: string
+export type ApiComment = {
+  id: number
+  review_id: number
+  user_id: number
+  username: string
+  avatar_url: string | null
+  text: string
+  created_at: string
+  updated_at: string
 }
+
+type FeedBase = {
+  id: number
+  user_id: number
+  username: string
+  avatar_url: string | null
+  created_at: string
+}
+
+export type ApiFeedItem =
+  | (FeedBase & {
+      type: 'review'
+      album_id: string
+      album_title: string | null
+      album_image: string | null
+      album_artist: string | null
+      rating: number
+      text: string | null
+    })
+  | (FeedBase & {
+      type: 'list'
+      list_id: number
+      list_title: string
+      item_count: number
+      album_image: string | null
+      text: string | null
+    })
+  | (FeedBase & {
+      type: 'follow'
+      target_id: number
+      target_username: string
+      target_avatar_url: string | null
+    })
+
+export type FeedScope = 'following' | 'friends'
 
 export type ApiRecommendation = {
   album_id: string
@@ -223,9 +266,14 @@ export type ApiRecommendation = {
   nota_media?: number | string | null
 }
 
+export type RecommendationKind = 'colaborativa' | 'genero' | 'popular' | 'vazio'
+
+export type TasteProfile = { reviews: number; favorites: number }
+
 export type RecommendationsResponse = {
-  tipo: 'colaborativa' | 'popular' | 'vazio'
+  tipo: RecommendationKind
   data: ApiRecommendation[]
+  perfil?: TasteProfile
 }
 
 export type ApiList = {

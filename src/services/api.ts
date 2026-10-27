@@ -1,4 +1,4 @@
-import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, PublicProfile, RatingSummary, RecommendationsResponse, TrackResult } from '../types/api'
+import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, FeedScope, PublicProfile, RatingSummary, RecommendationsResponse, TrackResult } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3004/api'
 let accessToken: string | null = null
@@ -43,7 +43,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   const contentType = response.headers.get('content-type') ?? ''
   const payload = contentType.includes('application/json') ? await response.json() : undefined
-  if (!response.ok) throw new ApiError(response.status, payload ?? {})
+  if (!response.ok) throw new ApiError(response.status, { requestId: response.headers.get('x-request-id') ?? undefined, ...payload })
   return payload as T
 }
 
@@ -93,6 +93,10 @@ export function verifyEmail(token: string) {
   return request<{ message: string }>('/auth/email/verify', jsonBody({ token }))
 }
 
+export function resendEmailVerification() {
+  return request<{ message: string }>('/auth/email/resend-verification', { method: 'POST' })
+}
+
 function normalizeAlbum(album: ApiAlbum, index: number): Album {
   const artist = album.artistCredit?.[0]?.name ?? album.artists?.[0]?.name ?? 'Artista desconhecido'
   const releaseDate = album.releaseDate ?? album.release_date ?? ''
@@ -121,8 +125,10 @@ export async function getTrendingAlbums(signal?: AbortSignal): Promise<Album[]> 
   return normalizeAlbumResponse(response)
 }
 
-export async function searchAlbums(query: string, signal?: AbortSignal): Promise<Album[]> {
-  const params = new URLSearchParams({ name: query, limit: '12' })
+export const ALBUM_SEARCH_PAGE_SIZE = 12
+
+export async function searchAlbums(query: string, signal?: AbortSignal, offset = 0): Promise<Album[]> {
+  const params = new URLSearchParams({ name: query, limit: String(ALBUM_SEARCH_PAGE_SIZE), offset: String(offset) })
   const response = await request<AlbumSearchResponse>(`/albums/search?${params.toString()}`, { signal })
   return normalizeAlbumResponse(response)
 }
@@ -293,8 +299,8 @@ export async function getFollowing(userId: number, signal?: AbortSignal) {
   return response.following
 }
 
-export function getFeed(page = 1, signal?: AbortSignal) {
-  return request<ApiFeedItem[]>(`/social/feed?page=${page}`, { signal })
+export function getFeed(page = 1, scope: FeedScope = 'following', signal?: AbortSignal) {
+  return request<ApiFeedItem[]>(`/social/feed?page=${page}&scope=${scope}`, { signal })
 }
 
 export type ReviewInput = { rating: number; text: string }
@@ -318,6 +324,24 @@ export function deleteReview(reviewId: number) {
   return request<void>(`/reviews/${reviewId}/delete`, { method: 'DELETE' })
 }
 
+export const COMMENTS_PAGE_SIZE = 20
+
+export function getReviewComments(reviewId: number, page = 1, signal?: AbortSignal) {
+  return request<ApiComment[]>(`/reviews/${reviewId}/comments?page=${page}`, { signal })
+}
+
+export function postComment(reviewId: number, text: string) {
+  return request<ApiComment>(`/reviews/${reviewId}/comments`, jsonBody({ text }))
+}
+
+export function updateComment(commentId: number, text: string) {
+  return request<ApiComment>(`/reviews/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ text }) })
+}
+
+export function deleteComment(commentId: number) {
+  return request<void>(`/reviews/comments/${commentId}`, { method: 'DELETE' })
+}
+
 export function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
@@ -335,7 +359,11 @@ export function normalizeRecommendation(item: ApiRecommendation): Album {
 
 export async function getRecommendations(signal?: AbortSignal, limit = 8) {
   const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}`, { signal })
-  return { kind: response.tipo, albums: (response.data ?? []).map(normalizeRecommendation) }
+  return {
+    kind: response.tipo,
+    albums: (response.data ?? []).map(normalizeRecommendation),
+    profile: response.perfil ?? { reviews: 0, favorites: 0 },
+  }
 }
 
 export type ListInput = { title: string; description: string; isPublic: boolean }

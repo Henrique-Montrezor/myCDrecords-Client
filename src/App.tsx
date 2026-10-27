@@ -14,6 +14,7 @@ const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const VerifyEmailScreen = lazy(() => import('./components/VerifyEmailScreen'))
 
 function RouteFallback() {
   return <p className="loading-copy" role="status">Carregando...</p>
@@ -35,10 +36,17 @@ function ResetPasswordRoute() {
   return token ? <ResetPasswordScreen token={token} /> : <Navigate to="/" replace />
 }
 
+function VerifyEmailRoute() {
+  const [params] = useSearchParams()
+  const token = params.get('token')
+  return token ? <VerifyEmailScreen token={token} /> : <Navigate to="/" replace />
+}
+
 function App() {
   return <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/auth/reset-password" element={<ResetPasswordRoute />} />
+      <Route path="/auth/verify-email" element={<VerifyEmailRoute />} />
       <Route element={<SessionGate />}>
         <Route path="/albums/:albumId" element={<AlbumRoute />} />
         <Route element={<AppShell />}>

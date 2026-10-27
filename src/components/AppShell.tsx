@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
 import Avatar from './Avatar'
+import EmailVerificationBanner from './EmailVerificationBanner'
 
 const navItems = [
   { to: '/', label: 'Início', icon: Home, end: true },
@@ -79,7 +80,7 @@ export default function AppShell() {
             <kbd>Ctrl K</kbd>
           </div>
         </header>
-        <div className="content-wrap"><Outlet /></div>
+        <div className="content-wrap"><EmailVerificationBanner /><Outlet /></div>
       </main>
     </div>
   )

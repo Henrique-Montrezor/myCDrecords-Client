@@ -6,6 +6,7 @@ import { initials } from '../lib/format'
 import { deleteReview, postReview, updateReview, type ReviewInput } from '../services/api'
 import type { AlbumDetails, ApiReview, RatingSummary } from '../types/api'
 import ReviewForm from './ReviewForm'
+import ReviewComments from './ReviewComments'
 import VoteButtons from './VoteButtons'
 
 export type CommunityState = { status: 'loading' | 'error' | 'ready'; summary: RatingSummary | null; mine: ApiReview | null; reviews: ApiReview[]; page: number; hasMore: boolean }
@@ -76,6 +77,7 @@ export default function ReviewSection({ album, community, loadingMore, onReload,
               ? <><span>Excluir esta review?</span><button type="button" className="review-delete" onClick={() => void remove(review.id)}>Sim, excluir</button><button type="button" onClick={() => setConfirmingId(null)}>Cancelar</button></>
               : <><button type="button" onClick={() => { setEditingId(review.id); setActionError('') }}>Editar</button><button type="button" onClick={() => setConfirmingId(review.id)}>Excluir</button></>}
           </div>}
+          <ReviewComments reviewId={review.id} initialCount={review.comment_count ?? 0} />
         </div>
       </li>
     })}</ul>}
