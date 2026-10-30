@@ -37,7 +37,7 @@ export default function HomePage() {
 
 
     <section className="section">
-      <div className="section-heading"><div><p className="eyebrow">DESCOBRIR</p><h2>Em alta este ano</h2></div><Link className="text-button" to="/search">Ver tudo <ChevronRight size={15} /></Link></div>
+      <div className="section-heading"><div><p className="eyebrow">DESCOBRIR</p><h2>Lançamentos do ano</h2></div><Link className="text-button" to="/discover">Explorar catálogo <ChevronRight size={15} /></Link></div>
       {trending.status === 'loading' && <p className="loading-copy" role="status">Buscando novidades...</p>}
       {trending.status === 'error' && <div className="empty-state" role="alert"><p>Não foi possível carregar os álbuns agora.</p><button type="button" className="secondary-button" onClick={trending.reload}><RotateCw size={16} /> Tentar novamente</button></div>}
       {trending.albums.length > 0 && <div className="album-row">{trending.albums.slice(0, 8).map((album) => <AlbumCard album={album} key={album.id} />)}</div>}

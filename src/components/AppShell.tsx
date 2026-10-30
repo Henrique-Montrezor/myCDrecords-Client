@@ -7,7 +7,7 @@ import EmailVerificationBanner from './EmailVerificationBanner'
 
 const navItems = [
   { to: '/', label: 'Início', icon: Home, end: true },
-  { to: '/search', label: 'Descobrir', icon: Compass, end: false },
+  { to: '/discover', label: 'Descobrir', icon: Compass, end: false },
   { to: '/lists', label: 'Listas', icon: ListMusic, end: false },
 ]
 
@@ -18,13 +18,15 @@ export default function AppShell() {
   const [params] = useSearchParams()
   const [menuOpen, setMenuOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
-  const onSearchPage = location.pathname === '/search'
+  const onDiscover = location.pathname === '/discover'
+  const onSearchPage = location.pathname === '/search' || onDiscover
   const query = onSearchPage ? params.get('q') ?? '' : ''
   const [value, setValue] = useState(query)
 
   useEffect(() => setValue(query), [query])
 
   useEffect(() => {
+    if (onDiscover) return
     if (value === query) return
     const timeout = window.setTimeout(() => {
       const next = new URLSearchParams()
@@ -32,10 +34,10 @@ export default function AppShell() {
       const tab = params.get('tab')
       if (onSearchPage && value && tab) next.set('tab', tab)
       const search = next.toString()
-      navigate({ pathname: '/search', search: search ? `?${search}` : '' }, { replace: onSearchPage })
+      navigate({ pathname: location.pathname === '/search' ? '/search' : '/discover', search: search ? `?${search}` : '' }, { replace: onSearchPage })
     }, 300)
     return () => window.clearTimeout(timeout)
-  }, [value, query, onSearchPage, navigate, params])
+  }, [value, query, onSearchPage, onDiscover, location.pathname, navigate, params])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: closes the mobile menu whenever the route changes.
   useEffect(() => setMenuOpen(false), [location.pathname])
@@ -44,12 +46,13 @@ export default function AppShell() {
     function focusSearch(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        searchRef.current?.focus()
+        if (onDiscover) document.getElementById('discover-search')?.focus()
+        else searchRef.current?.focus()
       }
     }
     window.addEventListener('keydown', focusSearch)
     return () => window.removeEventListener('keydown', focusSearch)
-  }, [])
+  }, [onDiscover])
 
   return (
     <div className="app-shell">
@@ -71,14 +74,14 @@ export default function AppShell() {
       </aside>
 
       <main className="main-content">
-        <header className="topbar">
+        <header className={onDiscover ? 'topbar topbar--discovery' : 'topbar'}>
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu size={22} /></button>
-          <div className="search-wrap">
+          {!onDiscover && <div className="search-wrap">
             <Search size={18} />
             <input ref={searchRef} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setValue('') }} placeholder="Buscar álbuns, artistas, faixas..." aria-label="Buscar" />
             {value && <button type="button" className="clear-search" onClick={() => { setValue(''); searchRef.current?.focus() }} aria-label="Limpar busca"><X size={15} /></button>}
             <kbd>Ctrl K</kbd>
-          </div>
+          </div>}
         </header>
         <div className="content-wrap"><EmailVerificationBanner /><Outlet /></div>
       </main>

@@ -81,12 +81,12 @@ function AlbumGrid({ status, albums, onRetry }: AlbumListState & { onRetry: () =
 function TrendingResults() {
   const trending = useTrendingAlbums()
   return <div aria-busy={trending.status === 'loading'}>
-    <div className="section-heading"><div><p className="eyebrow">DESCOBRIR</p><h1 className="page-title">Em alta este ano</h1></div></div>
+    <div className="section-heading"><div><p className="eyebrow">CATÁLOGO</p><h1 className="page-title">Lançamentos do ano</h1></div></div>
     <AlbumGrid {...trending} onRetry={trending.reload} />
   </div>
 }
 
-function AlbumResults({ query }: { query: string }) {
+function AlbumResults({ query, embedded }: { query: string; embedded: boolean }) {
   const [results, setResults] = useState<AlbumListState>({ status: 'loading', albums: [] })
   const [attempt, setAttempt] = useState(0)
   const [hasMore, setHasMore] = useState(false)
@@ -134,9 +134,10 @@ function AlbumResults({ query }: { query: string }) {
 
   const { status, albums } = results
   const heading = status === 'loading' ? 'Buscando álbuns...' : `${albums.length} ${albums.length === 1 ? 'álbum' : 'álbuns'} para “${query}”`
+  const Heading = embedded ? 'h2' : 'h1'
 
   return <div aria-busy={status === 'loading'}>
-    <div className="section-heading"><div><p className="eyebrow">RESULTADOS</p><h1 className="page-title" aria-live="polite">{heading}</h1></div></div>
+    <div className="section-heading"><div>{!embedded && <p className="eyebrow">RESULTADOS</p>}<Heading className="page-title" aria-live="polite">{heading}</Heading></div></div>
     <AlbumGrid status={status} albums={albums} onRetry={() => setAttempt((value) => value + 1)} />
     {status === 'ready' && moreError && <p className="form-error" role="alert">Não foi possível carregar mais álbuns. Tente novamente.</p>}
     {status === 'ready' && hasMore && <button type="button" className="secondary-button review-more" onClick={() => void loadMore()} disabled={loadingMore}>{loadingMore ? 'Carregando...' : 'Ver mais álbuns'}</button>}
@@ -149,10 +150,11 @@ const headings: Record<Exclude<Tab, 'albums'>, { eyebrow: string; title: (query:
   people: { eyebrow: 'PESSOAS', title: (query) => `Perfis para “${query}”` },
 }
 
-export default function SearchPage() {
+export default function SearchPage({ embedded = false }: { embedded?: boolean }) {
   const [params, setParams] = useSearchParams()
   const query = (params.get('q') ?? '').trim()
   const tab = query ? parseTab(params.get('tab')) : 'albums'
+  const Heading = embedded ? 'h2' : 'h1'
 
   function selectTab(next: Tab) {
     const nextParams = new URLSearchParams(params)
@@ -163,11 +165,17 @@ export default function SearchPage() {
 
   return <section className="search-results">
     {query && <div className="profile-tabs" role="tablist" aria-label="Tipo de resultado">
-      {tabs.map(({ id, label }) => <button type="button" key={id} role="tab" id={`search-tab-${id}`} aria-selected={tab === id} aria-controls="search-panel" className={tab === id ? 'profile-tab profile-tab--active' : 'profile-tab'} onClick={() => selectTab(id)}>{label}</button>)}
+      {tabs.map(({ id, label }, index) => <button type="button" key={id} role="tab" id={`search-tab-${id}`} tabIndex={tab === id ? 0 : -1} aria-selected={tab === id} aria-controls="search-panel" className={tab === id ? 'profile-tab profile-tab--active' : 'profile-tab'} onClick={() => selectTab(id)} onKeyDown={(event) => {
+        const nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null
+        if (nextIndex === null) return
+        event.preventDefault()
+        selectTab(tabs[nextIndex].id)
+        document.getElementById(`search-tab-${tabs[nextIndex].id}`)?.focus()
+      }}>{label}</button>)}
     </div>}
     {!query ? <TrendingResults /> : <div id="search-panel" role="tabpanel" aria-labelledby={`search-tab-${tab}`}>
-      {tab === 'albums' ? <AlbumResults query={query} /> : <>
-        <div className="section-heading"><div><p className="eyebrow">{headings[tab].eyebrow}</p><h1 className="page-title">{headings[tab].title(query)}</h1></div></div>
+      {tab === 'albums' ? <AlbumResults query={query} embedded={embedded} /> : <>
+        <div className="section-heading"><div>{!embedded && <p className="eyebrow">{headings[tab].eyebrow}</p>}<Heading className="page-title">{headings[tab].title(query)}</Heading></div></div>
         {tab === 'artists' && <ArtistResults query={query} />}
         {tab === 'tracks' && <TrackResults query={query} />}
         {tab === 'people' && <PeopleResults query={query} />}

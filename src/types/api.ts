@@ -43,6 +43,33 @@ export type AlbumSearchResponse = {
   musicbrainz?: ApiAlbum[]
 }
 
+export const discoveryGenres = ['rock', 'pop', 'jazz', 'electronic', 'hip hop', 'gothic rock', 'post-punk', 'darkwave', 'gothic metal'] as const
+export type DiscoveryGenre = typeof discoveryGenres[number]
+export type DiscoveryFilters = { genre: DiscoveryGenre | ''; year: string; type: 'album' | 'ep' | 'single'; offset: string }
+export type DiscoveryResponse = {
+  source: 'musicbrainz'
+  updatedAt: string
+  items: ApiAlbum[]
+  total: number
+  nextOffset: number | null
+}
+export type DiscoveryPage = Omit<DiscoveryResponse, 'items'> & { albums: Album[] }
+
+export type ApiDiscoverySelection = {
+  sectionId: 'editorial'
+  kind: 'editorial'
+  title: string
+  source: 'mycdrecords'
+  status: 'ready' | 'empty'
+  revision: number
+  updatedAt: string | null
+  curator: string | null
+  items: Array<{ album: ApiAlbum; note: string }>
+}
+export type DiscoverySelectionData = Omit<ApiDiscoverySelection, 'items'> & {
+  items: Array<{ album: Album; note: string }>
+}
+
 // Normalized card data shared by search, trending, artist discography and recommendations.
 export type Album = {
   id: string
@@ -285,6 +312,24 @@ export type ApiList = {
   created_at: string
   updated_at: string
   item_count?: number
+  username?: string
+  is_saved?: boolean
+  save_count?: number
+  previews?: Array<{ album_id: string; album_title: string | null; album_image: string | null }>
+  has_thumbnail?: boolean
+  has_banner?: boolean
+  image_revision?: number
+}
+
+export type ListScope = 'popular' | 'following' | 'friends' | 'mine' | 'saved'
+export type ListDiscoveryFilters = { scope: ListScope; q: string; sort: 'popular' | 'recent'; page: number }
+export type ListDiscoveryPage = {
+  items: ApiList[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  mode: 'popular' | 'recent'
 }
 
 export type ApiListItem = {
@@ -298,4 +343,5 @@ export type ApiListItem = {
   created_at: string
 }
 
-export type ApiListDetails = ApiList & { items: ApiListItem[] }
+export type ApiListDetails = ApiList & { items: ApiListItem[]; page: number; pageSize: number; totalPages: number; order_revision: number }
+export type ListImageKind = 'thumbnail' | 'banner'

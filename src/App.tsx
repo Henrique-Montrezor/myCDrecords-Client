@@ -4,10 +4,12 @@ import AppShell from './components/AppShell'
 import SessionGate from './components/SessionGate'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
+import PublicListLayout from './components/PublicListLayout'
 
 // Home stays in the main bundle (first screen after login); everything else loads on demand.
 const AlbumPage = lazy(() => import('./album-page'))
 const ArtistPage = lazy(() => import('./pages/ArtistPage'))
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 const ListDetailPage = lazy(() => import('./pages/ListDetailPage'))
 const ListsPage = lazy(() => import('./pages/ListsPage'))
 const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'))
@@ -47,14 +49,17 @@ function App() {
     <Routes>
       <Route path="/auth/reset-password" element={<ResetPasswordRoute />} />
       <Route path="/auth/verify-email" element={<VerifyEmailRoute />} />
+      <Route element={<PublicListLayout />}>
+        <Route path="lists/:listId" element={page(<ListDetailPage />)} />
+      </Route>
       <Route element={<SessionGate />}>
         <Route path="/albums/:albumId" element={<AlbumRoute />} />
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
+          <Route path="discover" element={page(<DiscoverPage />)} />
           <Route path="search" element={page(<SearchPage />)} />
           <Route path="artists/:mbid" element={page(<ArtistPage />)} />
           <Route path="lists" element={page(<ListsPage />)} />
-          <Route path="lists/:listId" element={page(<ListDetailPage />)} />
           <Route path="profile/:username" element={page(<ProfilePage />)} />
           <Route path="settings/profile" element={page(<ProfileEditPage />)} />
           <Route path="*" element={<NotFoundPage />} />
@@ -65,6 +70,4 @@ function App() {
 }
 
 export default App
-
-
 

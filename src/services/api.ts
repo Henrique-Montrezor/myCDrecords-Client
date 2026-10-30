@@ -1,4 +1,6 @@
 import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, FeedScope, PublicProfile, RatingSummary, RecommendationsResponse, TrackResult } from '../types/api'
+import type { ApiDiscoverySelection, DiscoveryFilters, DiscoveryPage, DiscoveryResponse, DiscoverySelectionData } from '../types/api'
+import type { ListDiscoveryFilters, ListDiscoveryPage, ListImageKind } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3004/api'
 let accessToken: string | null = null
@@ -30,7 +32,7 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}, responseType: 'json' | 'blob' = 'json'): Promise<T> {
   const headers = new Headers(options.headers)
   if (!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json')
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
@@ -42,7 +44,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   })
 
   const contentType = response.headers.get('content-type') ?? ''
-  const payload = contentType.includes('application/json') ? await response.json() : undefined
+  const payload = response.ok && responseType === 'blob' ? await response.blob() : contentType.includes('application/json') ? await response.json() : undefined
   if (!response.ok) throw new ApiError(response.status, { requestId: response.headers.get('x-request-id') ?? undefined, ...payload })
   return payload as T
 }
@@ -126,6 +128,18 @@ export async function getTrendingAlbums(signal?: AbortSignal): Promise<Album[]> 
 }
 
 export const ALBUM_SEARCH_PAGE_SIZE = 12
+
+export async function getDiscoverySelection(signal?: AbortSignal): Promise<DiscoverySelectionData> {
+  const { items, ...metadata } = await request<ApiDiscoverySelection>('/albums/discover/selection', { signal })
+  return { ...metadata, items: items.map((item, index) => ({ album: normalizeAlbum(item.album, index), note: item.note })) }
+}
+
+export async function discoverAlbums(filters: DiscoveryFilters, signal?: AbortSignal): Promise<DiscoveryPage> {
+  const params = new URLSearchParams({ year: filters.year, type: filters.type, offset: filters.offset })
+  if (filters.genre) params.set('genre', filters.genre)
+  const { items, ...metadata } = await request<DiscoveryResponse>(`/albums/discover?${params}`, { signal })
+  return { ...metadata, albums: items.map(normalizeAlbum) }
+}
 
 export async function searchAlbums(query: string, signal?: AbortSignal, offset = 0): Promise<Album[]> {
   const params = new URLSearchParams({ name: query, limit: String(ALBUM_SEARCH_PAGE_SIZE), offset: String(offset) })
@@ -368,16 +382,59 @@ export async function getRecommendations(signal?: AbortSignal, limit = 8) {
 
 export type ListInput = { title: string; description: string; isPublic: boolean }
 
-export function getMyLists(signal?: AbortSignal) {
-  return request<ApiList[]>('/lists/me', { signal })
+function listCoverImage(albumId: string, image: string | null): string | null {
+  // Legacy items have no source field; unknown/Spotify artwork is not reused here.
+  const musicBrainzId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(albumId)
+  return musicBrainzId && image && /^https:\/\/(?:coverartarchive\.org|(?:[^/.]+\.)?archive\.org)\//i.test(image) ? image : null
 }
 
-export function getUserLists(userId: number, signal?: AbortSignal) {
-  return request<ApiList[]>(`/lists/user/${userId}`, { signal })
+function normalizeList<T extends ApiList>(list: T): T {
+  return { ...list, is_public: Boolean(list.is_public), is_saved: Boolean(list.is_saved),
+    has_thumbnail: Boolean(list.has_thumbnail), has_banner: Boolean(list.has_banner) }
 }
 
-export function getList(listId: number, signal?: AbortSignal) {
-  return request<ApiListDetails>(`/lists/${listId}`, { signal })
+export async function exploreLists(filters: ListDiscoveryFilters, signal?: AbortSignal): Promise<ListDiscoveryPage> {
+  const params = new URLSearchParams({ scope: filters.scope, q: filters.q, sort: filters.sort, page: String(filters.page) })
+  const result = await request<ListDiscoveryPage>(`/lists/explore?${params}`, { signal })
+  return { ...result, items: result.items.map((list) => ({
+    ...normalizeList(list), item_count: Number(list.item_count), save_count: Number(list.save_count),
+    previews: list.previews?.map((preview) => ({ ...preview, album_image: listCoverImage(preview.album_id, preview.album_image) })),
+  })) }
+}
+
+export function setListSaved(listId: number, saved: boolean) {
+  return request<void>(`/lists/${listId}/saved`, { method: saved ? 'PUT' : 'DELETE' })
+}
+
+export function getListImage(listId: number, kind: ListImageKind, signal?: AbortSignal) {
+  return request<Blob>(`/lists/${listId}/images/${kind}`, { signal, cache: 'no-store' }, 'blob')
+}
+
+export async function uploadListImage(listId: number, kind: ListImageKind, image: Blob) {
+  await request<void>(`/lists/${listId}/images/${kind}`, { method: 'PUT', headers: { 'Content-Type': image.type }, body: image })
+  return { url: `/lists/${listId}/images/${kind}` }
+}
+
+export function removeListImage(listId: number, kind: ListImageKind) {
+  return request<void>(`/lists/${listId}/images/${kind}`, { method: 'DELETE' })
+}
+
+export function moveListItem(listId: number, input: { revision: number; itemId: number; toPosition: number }) {
+  return request<{ revision: number; page: number }>(`/lists/${listId}/order`, { method: 'PUT', body: JSON.stringify(input) })
+}
+
+export async function getMyLists(signal?: AbortSignal) {
+  return (await request<ApiList[]>('/lists/me', { signal })).map(normalizeList)
+}
+
+export async function getUserLists(userId: number, signal?: AbortSignal) {
+  return (await request<ApiList[]>(`/lists/user/${userId}`, { signal })).map(normalizeList)
+}
+
+export async function getList(listId: number, signal?: AbortSignal, page = 1): Promise<ApiListDetails> {
+  const list = await request<ApiListDetails>(`/lists/${listId}?page=${page}`, { signal })
+  return { ...normalizeList(list), item_count: Number(list.item_count),
+    items: list.items.map((item) => ({ ...item, album_image: listCoverImage(item.album_id, item.album_image) })) }
 }
 
 export function createList(input: ListInput) {
@@ -404,4 +461,3 @@ export function addAlbumToList(listId: number, album: AlbumDetails) {
 export function removeAlbumFromList(listId: number, albumId: string) {
   return request<void>(`/lists/${listId}/items/${encodeURIComponent(albumId)}`, { method: 'DELETE' })
 }
-
