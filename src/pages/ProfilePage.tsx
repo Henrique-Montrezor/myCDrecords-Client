@@ -74,7 +74,7 @@ function UserReviews({ userId }: { userId: number }) {
   return <>
     <ul className="profile-reviews">{reviews.map((review) => <li key={review.id}>
       <Link className="profile-review-cover" to={`/albums/${encodeURIComponent(String(review.album_id))}`} aria-label={`Abrir ${review.album_title ?? 'álbum'}`}>
-        {review.album_image ? <img src={review.album_image} alt="" loading="lazy" /> : <span />}
+        {review.album_image ? <img src={review.album_image} alt="" loading="lazy" onError={(event) => { event.currentTarget.hidden = true }} /> : <span />}
       </Link>
       <div>
         <h3><Link to={`/albums/${encodeURIComponent(String(review.album_id))}`}>{review.album_title ?? 'Álbum'}</Link></h3>

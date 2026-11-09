@@ -65,6 +65,15 @@ describe('normalizeTrack', () => {
 describe('normalizeRecommendation', () => {
   it('builds a card with an encoded album link', () => {
     const album = normalizeRecommendation({ album_id: 'id with space', album_title: 'Title', album_artist: 'Artist', album_image: null })
-    expect(album).toEqual({ id: 'id with space', title: 'Title', artist: 'Artist', year: '', cover: '', link: '/albums/id%20with%20space' })
+    expect(album).toEqual({ id: 'id with space', title: 'Title', artist: 'Artist', year: '', cover: '', link: '/albums/id%20with%20space', reasons: [] })
+  })
+
+  it('keeps only well-formed reasons and the release year', () => {
+    const album = normalizeRecommendation({
+      album_id: 'a', album_title: 'T', album_artist: 'A', release_date: '1981-04-10',
+      reasons: [{ type: 'tags', tags: ['gothic rock', 3] }, { type: 'collaborative', people: '2' }, { type: 'exploration', tag: 'darkwave', from: 'gothic rock' }, { type: 'unknown' }, null],
+    })
+    expect(album.year).toBe('1981')
+    expect(album.reasons).toEqual([{ type: 'tags', tags: ['gothic rock'] }, { type: 'exploration', tag: 'darkwave', from: 'gothic rock' }])
   })
 })

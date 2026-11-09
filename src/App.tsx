@@ -14,6 +14,8 @@ const ListDetailPage = lazy(() => import('./pages/ListDetailPage'))
 const ListsPage = lazy(() => import('./pages/ListsPage'))
 const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage'))
+const DismissedRecommendationsPage = lazy(() => import('./pages/DismissedRecommendationsPage'))
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const VerifyEmailScreen = lazy(() => import('./components/VerifyEmailScreen'))
@@ -57,6 +59,8 @@ function App() {
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path="discover" element={page(<DiscoverPage />)} />
+          <Route path="recommendations/dismissed" element={page(<DismissedRecommendationsPage />)} />
+          <Route path="recommendations" element={page(<RecommendationsPage />)} />
           <Route path="search" element={page(<SearchPage />)} />
           <Route path="artists/:mbid" element={page(<ArtistPage />)} />
           <Route path="lists" element={page(<ListsPage />)} />

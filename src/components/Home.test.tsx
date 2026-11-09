@@ -4,7 +4,7 @@ import axe from 'axe-core'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../services/api'
-import type { ApiFeedItem } from '../types/api'
+import type { ApiFeedItem, RecommendationKind, RecommendedAlbum } from '../types/api'
 import HomeFeed from './HomeFeed'
 import HomeRecommendations from './HomeRecommendations'
 
@@ -81,20 +81,24 @@ describe('HomeFeed', () => {
   })
 })
 
-const album = { id: 'x1', title: 'Kind of Blue', artist: 'Miles Davis', year: '', cover: '', link: '/albums/x1' }
+const album: RecommendedAlbum = { id: 'x1', title: 'Kind of Blue', artist: 'Miles Davis', year: '', cover: '', link: '/albums/x1', reasons: [{ type: 'tags', tags: ['jazz'] }] }
+const recs = (kind: RecommendationKind, albums: RecommendedAlbum[], reviews: number) =>
+  ({ kind, albums, profile: { reviews, favorites: 0 }, evidence: { signals: kind === 'personalizada' ? 3 : 0, required: 3 }, total: albums.length, nextOffset: null })
 
 describe('HomeRecommendations', () => {
   it('lists suggestions with a reason and has no axe violations', async () => {
-    vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'colaborativa', albums: [album], profile: { reviews: 5, favorites: 0 } })
+    vi.mocked(api.getRecommendations).mockResolvedValue(recs('personalizada', [album], 5))
     const { container } = renderInRouter(<HomeRecommendations />)
     expect(await screen.findByRole('link', { name: /Kind of Blue/ })).toHaveProperty('pathname', '/albums/x1')
+    expect(screen.getByText('Pelas suas notas em jazz')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Ver todas' }).getAttribute('href')).toBe('/recommendations')
     expect(screen.queryByText('Conte o que você ouve')).toBeNull()
     const { violations } = await axe.run(container)
     expect(violations.map((v) => v.id)).toEqual([])
   })
 
   it('asks for reviews or favorites when there is nothing to base suggestions on', async () => {
-    vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'vazio', albums: [], profile: { reviews: 0, favorites: 0 } })
+    vi.mocked(api.getRecommendations).mockResolvedValue(recs('vazio', [], 0))
     renderInRouter(<HomeRecommendations />)
     expect(await screen.findByText('Conte o que você ouve')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Avaliar álbuns' }).getAttribute('href')).toBe('/search')
@@ -102,14 +106,14 @@ describe('HomeRecommendations', () => {
   })
 
   it('keeps showing popular albums next to the invitation for a new user', async () => {
-    vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'popular', albums: [album], profile: { reviews: 0, favorites: 0 } })
+    vi.mocked(api.getRecommendations).mockResolvedValue(recs('popular', [album], 0))
     renderInRouter(<HomeRecommendations />)
     expect(await screen.findByText('Conte o que você ouve')).toBeTruthy()
     expect(screen.getByRole('link', { name: /Kind of Blue/ })).toBeTruthy()
   })
 
   it('nudges users with few reviews to rate more', async () => {
-    vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'popular', albums: [album], profile: { reviews: 1, favorites: 0 } })
+    vi.mocked(api.getRecommendations).mockResolvedValue(recs('popular', [album], 1))
     renderInRouter(<HomeRecommendations />)
     expect(await screen.findByText(/Avalie mais discos/)).toBeTruthy()
     expect(screen.queryByText('Conte o que você ouve')).toBeNull()

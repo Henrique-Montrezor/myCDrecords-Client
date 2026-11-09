@@ -15,7 +15,7 @@ function ActivityItem({ item, username, isSelf }: { item: ApiActivity; username:
   const subject = isSelf ? 'Você' : username
   return <li className="activity-entry">
     <Link className="profile-review-cover" to={albumPath} aria-label={`Abrir ${title}`}>
-      {item.album_image ? <img src={item.album_image} alt="" loading="lazy" /> : <span />}
+      {item.album_image ? <img src={item.album_image} alt="" loading="lazy" onError={(event) => { event.currentTarget.hidden = true }} /> : <span />}
     </Link>
     <div>
       <p className="activity-line">

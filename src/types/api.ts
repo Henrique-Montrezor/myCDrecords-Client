@@ -282,25 +282,62 @@ export type ApiFeedItem =
 
 export type FeedScope = 'following' | 'friends'
 
+export type RecommendationReason =
+  | { type: 'tags'; tags: string[] }
+  | { type: 'collaborative'; people: number }
+  | { type: 'exploration'; tag: string; from: string }
+  | { type: 'community'; people: number }
+  | { type: 'preferences'; genres: string[]; artists: string[] }
+
 export type ApiRecommendation = {
   album_id: string
   album_title: string
   album_artist: string
   album_image?: string | null
-  album_genre?: string | null
-  afinidade_score?: number
-  total_avaliacoes?: number
-  nota_media?: number | string | null
+  release_date?: string | null
+  source?: 'musicbrainz'
+  reasons?: unknown[]
 }
 
-export type RecommendationKind = 'colaborativa' | 'genero' | 'popular' | 'vazio'
+export type RecommendationKind = 'personalizada' | 'popular' | 'vazio'
 
 export type TasteProfile = { reviews: number; favorites: number }
+
+export type RecommendationEvidence = { signals: number; required: number }
 
 export type RecommendationsResponse = {
   tipo: RecommendationKind
   data: ApiRecommendation[]
   perfil?: TasteProfile
+  version?: string
+  evidence?: RecommendationEvidence
+  total?: number
+  nextOffset?: number | null
+}
+
+export type RecommendedAlbum = Album & { reasons: RecommendationReason[] }
+
+export type RecommendationsPage = {
+  kind: RecommendationKind
+  albums: RecommendedAlbum[]
+  profile: TasteProfile
+  evidence: RecommendationEvidence
+  total: number
+  nextOffset: number | null
+}
+
+export type RecommendationPreferences = { genres: string[]; artists: string[] }
+
+export type DismissedRecommendationsResponse = {
+  data: ApiRecommendation[]
+  total: number
+  nextOffset: number | null
+}
+
+export type DismissedRecommendationsPage = {
+  albums: RecommendedAlbum[]
+  total: number
+  nextOffset: number | null
 }
 
 export type ApiList = {

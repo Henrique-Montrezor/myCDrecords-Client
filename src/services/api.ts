@@ -1,4 +1,4 @@
-import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, FeedScope, PublicProfile, RatingSummary, RecommendationsResponse, TrackResult } from '../types/api'
+import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, DismissedRecommendationsPage, DismissedRecommendationsResponse, FeedScope, PublicProfile, RatingSummary, RecommendationPreferences, RecommendationReason, RecommendationsPage, RecommendationsResponse, RecommendedAlbum, TrackResult } from '../types/api'
 import type { ApiDiscoverySelection, DiscoveryFilters, DiscoveryPage, DiscoveryResponse, DiscoverySelectionData } from '../types/api'
 import type { ListDiscoveryFilters, ListDiscoveryPage, ListImageKind } from '../types/api'
 
@@ -360,24 +360,70 @@ export function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-export function normalizeRecommendation(item: ApiRecommendation): Album {
+function normalizeReason(value: unknown): RecommendationReason | null {
+  if (typeof value !== 'object' || value === null) return null
+  const reason = value as Record<string, unknown>
+  if (reason.type === 'tags' && Array.isArray(reason.tags)) {
+    const tags = reason.tags.filter((tag): tag is string => typeof tag === 'string')
+    return tags.length > 0 ? { type: 'tags', tags } : null
+  }
+  if ((reason.type === 'collaborative' || reason.type === 'community') && typeof reason.people === 'number') return { type: reason.type, people: reason.people }
+  if (reason.type === 'exploration' && typeof reason.tag === 'string' && typeof reason.from === 'string') return { type: 'exploration', tag: reason.tag, from: reason.from }
+  if (reason.type === 'preferences' && Array.isArray(reason.genres) && Array.isArray(reason.artists)) {
+    return {
+      type: 'preferences',
+      genres: reason.genres.filter((value): value is string => typeof value === 'string'),
+      artists: reason.artists.filter((value): value is string => typeof value === 'string'),
+    }
+  }
+  return null
+}
+
+export function normalizeRecommendation(item: ApiRecommendation): RecommendedAlbum {
   return {
     id: item.album_id,
     title: item.album_title || 'Álbum sem título',
     artist: item.album_artist || 'Artista desconhecido',
-    year: '',
+    year: item.release_date?.slice(0, 4) ?? '',
     cover: item.album_image ?? '',
     link: `/albums/${encodeURIComponent(item.album_id)}`,
+    reasons: (item.reasons ?? []).map(normalizeReason).filter((reason): reason is RecommendationReason => reason !== null),
   }
 }
 
-export async function getRecommendations(signal?: AbortSignal, limit = 8) {
-  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}`, { signal })
+export async function getRecommendations(signal?: AbortSignal, limit = 8, offset = 0): Promise<RecommendationsPage> {
+  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}&offset=${offset}`, { signal })
+  const albums = (response.data ?? []).map(normalizeRecommendation)
   return {
     kind: response.tipo,
-    albums: (response.data ?? []).map(normalizeRecommendation),
+    albums,
     profile: response.perfil ?? { reviews: 0, favorites: 0 },
+    evidence: response.evidence ?? { signals: 0, required: 3 },
+    total: response.total ?? albums.length,
+    nextOffset: response.nextOffset ?? null,
   }
+}
+
+export function dismissRecommendation(albumId: string) {
+  return request<void>(`/recommendations/dismissed/${encodeURIComponent(albumId)}`, { method: 'PUT' })
+}
+
+export function undoDismissRecommendation(albumId: string) {
+  return request<void>(`/recommendations/dismissed/${encodeURIComponent(albumId)}`, { method: 'DELETE' })
+}
+
+export function getRecommendationPreferences(signal?: AbortSignal) {
+  return request<RecommendationPreferences>('/recommendations/preferences', { signal })
+}
+
+export function saveRecommendationPreferences(preferences: RecommendationPreferences) {
+  return request<RecommendationPreferences>('/recommendations/preferences', { method: 'PUT', body: JSON.stringify(preferences) })
+}
+
+export async function getDismissedRecommendations(signal?: AbortSignal, limit = 12, offset = 0): Promise<DismissedRecommendationsPage> {
+  const response = await request<DismissedRecommendationsResponse>(`/recommendations/dismissed?limit=${limit}&offset=${offset}`, { signal })
+  const albums = (response.data ?? []).map(normalizeRecommendation)
+  return { albums, total: response.total ?? albums.length, nextOffset: response.nextOffset ?? null }
 }
 
 export type ListInput = { title: string; description: string; isPublic: boolean }

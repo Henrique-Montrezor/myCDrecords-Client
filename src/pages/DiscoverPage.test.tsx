@@ -43,7 +43,7 @@ beforeEach(() => {
     sectionId: 'editorial', kind: 'editorial', title: 'Escolhas da curadoria', source: 'mycdrecords',
     status: 'empty', revision: 0, curator: null, updatedAt: null, items: [],
   })
-  vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'vazio', albums: [], profile: { reviews: 0, favorites: 0 } })
+  vi.mocked(api.getRecommendations).mockResolvedValue({ kind: 'vazio', albums: [], profile: { reviews: 0, favorites: 0 }, evidence: { signals: 0, required: 3 }, total: 0, nextOffset: null })
   vi.mocked(api.searchAlbums).mockResolvedValue(result.albums)
   vi.mocked(api.searchArtists).mockResolvedValue([])
   vi.mocked(api.searchTracks).mockResolvedValue([])
@@ -83,12 +83,12 @@ describe('DiscoverPage', () => {
   it('shows existing recommendations with their real reason, not a catalog disguised as personalization', async () => {
     vi.mocked(api.discoverAlbums).mockResolvedValue(result)
     vi.mocked(api.getRecommendations).mockResolvedValue({
-      kind: 'genero', albums: [{ ...result.albums[0], id: 'rec', title: 'Uma sugestão real', link: '/albums/rec' }],
-      profile: { reviews: 4, favorites: 0 },
+      kind: 'personalizada', albums: [{ ...result.albums[0], id: 'rec', title: 'Uma sugestão real', link: '/albums/rec', reasons: [{ type: 'tags', tags: ['jazz'] }] }],
+      profile: { reviews: 4, favorites: 0 }, evidence: { signals: 4, required: 3 }, total: 1, nextOffset: null,
     })
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Uma sugestão real' })).toBeTruthy()
-    expect(screen.getByText('Bem avaliados nos gêneros que você mais gosta.')).toBeTruthy()
+    expect(screen.getByText('Escolhidos a partir das suas notas e favoritos.')).toBeTruthy()
     expect(screen.getByRole('link', { name: /Uma sugestão real/ }).getAttribute('href')).toBe('/albums/rec')
   })
 

@@ -600,6 +600,7 @@ h1 em { color: var(--green); font-style: normal; }
 .profile-reviews li { display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
 .profile-review-cover { display: block; width: 64px; height: 64px; overflow: hidden; border-radius: 4px; background: var(--panel-light); }
 .profile-review-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-review-cover img[hidden] { display: none; }
 .profile-reviews h3 { color: var(--cream); font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: -.4px; }
 .profile-reviews h3 a:hover { color: var(--green-light); }
 .profile-review-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; color: #91a49e; font-size: 12px; }
@@ -644,3 +645,52 @@ h1 em { color: var(--green); font-style: normal; }
 @media (max-width: 700px) { .auth-page { display: block; min-height: 100vh; overflow: auto; } .auth-intro { min-height: 390px; padding: 28px 24px 45px; } .auth-brand { padding-bottom: 42px; } .auth-intro h1 { font-size: 53px; } .auth-description { max-width: 310px; } .auth-note { margin-top: 32px; } .auth-panel { width: calc(100% - 28px); margin: -8px auto 28px; padding: 27px 22px; } .auth-heading { margin-top: 34px; } }
 @media (max-width: 700px) { .album-page-topbar { padding: 21px 18px; } .album-detail { padding: 30px 18px 55px; } .album-hero { grid-template-columns: 1fr; gap: 31px; } .album-cover-stage { width: min(100%, 330px); margin: 0 auto; } .album-detail-copy h1 { font-size: 43px; } .album-content-grid { grid-template-columns: 1fr; gap: 43px; margin-top: 58px; } }
 @media (max-width: 700px) { .profile-hero-grooves { right: -330px; opacity: .35; } .profile-backdrop { height: 440px; } .profile-backdrop::before { background: radial-gradient(ellipse at 50% 100%, var(--bg) 0, transparent 70%), linear-gradient(0deg, rgba(16,22,21,.7) 0%, rgba(16,22,21,.15) 100%); } .favorite-caption { display: none; } }
+.rec-info .rec-why { color: var(--green-light); }
+.recs-page { max-width: 880px; }
+.recs-page > .share-status:empty { min-height: 0; margin: 0; }
+.recs-intro { margin: 10px 0 0; color: var(--soft); font-size: 14px; line-height: 1.6; }
+.recs-page .taste-invite { margin-top: 18px; }
+.recs-index { margin: 26px 0 0; padding: 0; border-top: 1px solid var(--line); list-style: none; counter-reset: recs; }
+.recs-entry { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px 16px; padding: 18px 0; border-bottom: 1px solid var(--line); counter-increment: recs; }
+.recs-cover { position: relative; width: 72px; height: 72px; overflow: hidden; border-radius: 4px; background: var(--panel-light); }
+.recs-cover img, .recs-cover-empty { display: block; width: 100%; height: 100%; object-fit: contain; }
+.recs-cover-empty { display: grid; place-items: center; color: var(--muted); }
+.recs-body { min-width: 0; }
+.recs-body h2 { color: var(--cream); font-size: 17px; font-weight: 600; letter-spacing: -.4px; overflow-wrap: anywhere; }
+.recs-body h2::before { margin-right: 10px; color: #60726c; content: counter(recs, decimal-leading-zero); font-size: 12px; }
+.recs-body h2 a:hover { color: var(--green-light); }
+.recs-artist { margin-top: 3px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.recs-reasons { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; color: var(--green-light); font-size: 12px; line-height: 1.5; }
+.recs-dismiss { grid-column: 1 / -1; justify-self: start; min-height: 44px; }
+.recs-more { margin-top: 22px; min-height: 44px; }
+.recs-about { margin-top: 30px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.recs-about summary { min-height: 44px; display: flex; align-items: center; color: var(--soft); cursor: pointer; }
+.recs-about p + p { margin-top: 8px; }
+.recs-about a { color: var(--green-light); text-decoration: underline; text-underline-offset: 3px; }
+.recs-tools { display: flex; justify-content: flex-end; margin-top: 16px; }
+.taste-preferences { display: grid; gap: 16px; margin: 24px 0 30px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.taste-preferences-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.taste-preferences-heading h2 { margin-top: 5px; color: var(--cream); font-size: 21px; font-weight: 600; }
+.taste-count { color: var(--green-light); font-size: 12px; }
+.taste-preferences-copy, .taste-source-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.taste-control { display: grid; gap: 7px; }
+.taste-control label { color: var(--soft); font-size: 12px; font-weight: 600; }
+.taste-input-row { display: flex; gap: 9px; }
+.taste-input-row input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--cream); background: var(--panel); }
+.taste-input-row input::placeholder { color: var(--muted); }
+.taste-input-row .secondary-button { min-height: 44px; }
+.taste-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -7px 0 0; padding: 0; list-style: none; }
+.taste-chips li { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 0 3px 0 11px; border: 1px solid var(--line); border-radius: 4px; color: var(--soft); background: var(--panel); font-size: 12px; overflow-wrap: anywhere; }
+.taste-chips button { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 3px; color: var(--muted); background: transparent; }
+.taste-chips button:hover { color: var(--cream); background: var(--panel-light); }
+.taste-artist-results { display: grid; gap: 4px; margin: -7px 0 0; padding: 0; list-style: none; }
+.taste-artist-results button { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 4px; color: var(--cream); background: var(--panel); text-align: left; }
+.taste-artist-results button:hover:not(:disabled) { border-color: rgba(3,187,133,.4); background: var(--panel-light); }
+.taste-artist-results button:disabled { cursor: default; opacity: .6; }
+.taste-artist-results small { color: var(--muted); text-align: right; }
+.taste-form-error, .taste-preferences-error { color: #f2b49a; font-size: 12px; line-height: 1.5; }
+.taste-preferences-error { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px; }
+.taste-form-notice { color: var(--green-light); font-size: 12px; line-height: 1.5; }
+.taste-preferences > .primary-button { justify-self: start; min-height: 44px; }
+@media (min-width: 701px) { .recs-entry { grid-template-columns: 96px minmax(0, 1fr) auto; align-items: center; gap: 20px; } .recs-cover { width: 96px; height: 96px; } .recs-dismiss { grid-column: auto; justify-self: end; } }
+@media (max-width: 700px) { .taste-input-row { align-items: stretch; } .taste-input-row .secondary-button { padding-inline: 12px; } .taste-artist-results button { align-items: flex-start; flex-direction: column; gap: 3px; } .taste-artist-results small { text-align: left; } .taste-preferences > .primary-button { width: 100%; justify-content: center; } }

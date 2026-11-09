@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
 import { useResource } from '../hooks/useResource'
+import { formatRecommendationReason } from '../lib/format'
 import { getRecommendations } from '../services/api'
 import type { Album, RecommendationKind } from '../types/api'
 import ErrorBox from './ErrorBox'
@@ -12,15 +13,13 @@ import AlbumCard from './AlbumCard'
 const REVIEWS_FOR_TASTE = 3
 
 const copy: Record<RecommendationKind, { eyebrow: string; title: string }> = {
-  colaborativa: { eyebrow: 'QUEM OUVE O QUE VOCÊ OUVE', title: 'Para você' },
-  genero: { eyebrow: 'PELO SEU GOSTO', title: 'Para você' },
+  personalizada: { eyebrow: 'PELO SEU GOSTO', title: 'Para você' },
   popular: { eyebrow: 'BEM AVALIADOS PELA COMUNIDADE', title: 'Para começar' },
   vazio: { eyebrow: 'CONHEÇA NOVOS DISCOS', title: 'Para você' },
 }
 
 const reasons: Record<RecommendationKind, string> = {
-  colaborativa: 'Quem curte os mesmos discos que você também deu nota alta a estes.',
-  genero: 'Bem avaliados nos gêneros que você mais gosta.',
+  personalizada: 'Escolhidos a partir das suas notas e favoritos.',
   popular: 'Os favoritos da comunidade, enquanto aprendemos o seu gosto.',
   vazio: '',
 }
@@ -50,7 +49,7 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
   const data = resource.status === 'ready' ? resource.data : null
   const kind = data?.kind ?? 'popular'
   const hasSignals = data ? data.profile.reviews > 0 || data.profile.favorites > 0 : true
-  const needsMoreReviews = data !== null && hasSignals && data.kind !== 'colaborativa' && data.profile.reviews < REVIEWS_FOR_TASTE
+  const needsMoreReviews = data !== null && hasSignals && data.kind !== 'personalizada' && data.profile.reviews < REVIEWS_FOR_TASTE
 
   if (layout === 'shelf') {
     if (data && data.albums.length === 0) return <p className="sr-only" role="status">Ainda não há sugestões. Explore os discos e avalie suas escutas para ajudar nas próximas recomendações.</p>
@@ -58,7 +57,7 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
       <h2 id="discovery-recs-title">{kind === 'popular' || kind === 'vazio' ? 'Da comunidade' : 'Para você'}</h2>
       {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
       {resource.status === 'error' && <ErrorBox message="Não foi possível carregar as sugestões." onRetry={reload} />}
-      {data && <><p className="rec-reason">{data.kind === 'popular' ? 'Bem avaliados pela comunidade.' : reasons[data.kind]}</p>
+      {data && <><p className="rec-reason">{reasons[data.kind]}</p>
         {data.albums.length <= 2
           ? <ul className="discovery-rec-compact">{data.albums.map((album) => <li key={album.id}><Link to={album.link}><span className="rec-cover"><RecCover album={album} /></span><div><h3>{album.title}</h3><span>{album.artist}</span></div></Link></li>)}</ul>
           : <div className="album-grid">{data.albums.map((album) => <AlbumCard key={album.id} album={album} />)}</div>}
@@ -69,6 +68,7 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
   return <aside className="home-rail" aria-labelledby="home-recs-title" aria-busy={resource.status === 'loading'}>
     <div className="section-heading">
       <div><p className="eyebrow">{copy[kind].eyebrow}</p><h2 id="home-recs-title">{copy[kind].title}</h2></div>
+      {data && data.albums.length > 0 && <Link className="text-button" to="/recommendations">Ver todas</Link>}
     </div>
     {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
     {resource.status === 'error' && <ErrorBox message="Não foi possível carregar as sugestões." onRetry={reload} />}
@@ -79,7 +79,7 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
         <ol className="rec-list">{data.albums.map((album) => <li key={album.id}>
           <Link className="rec-item" to={album.link}>
             <span className="rec-cover"><RecCover album={album} /></span>
-            <span className="rec-info"><strong>{album.title}</strong><span>{album.artist}</span></span>
+            <span className="rec-info"><strong>{album.title}</strong><span>{album.artist}</span>{album.reasons[0] && <span className="rec-why">{formatRecommendationReason(album.reasons[0])}</span>}</span>
           </Link>
         </li>)}</ol>
       </>}

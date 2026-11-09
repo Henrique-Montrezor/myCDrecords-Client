@@ -1,4 +1,4 @@
-import { Compass, Disc3, Home, ListMusic, LogOut, Menu, Search, UserRound, X } from 'lucide-react'
+import { Compass, Disc3, Home, ListMusic, LogOut, Menu, Search, Sparkles, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
@@ -8,6 +8,7 @@ import EmailVerificationBanner from './EmailVerificationBanner'
 const navItems = [
   { to: '/', label: 'Início', icon: Home, end: true },
   { to: '/discover', label: 'Descobrir', icon: Compass, end: false },
+  { to: '/recommendations', label: 'Para você', icon: Sparkles, end: false },
   { to: '/lists', label: 'Listas', icon: ListMusic, end: false },
 ]
 
