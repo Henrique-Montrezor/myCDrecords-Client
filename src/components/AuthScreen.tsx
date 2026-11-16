@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Disc3, Eye, EyeOff } from 'lucide-react'
 import { ApiError, requestPasswordReset } from '../services/api'
 import { useSession } from '../contexts/SessionContext'
+import { publicReviewNotice } from '../types/api'
 
 type AuthMode = 'login' | 'register' | 'forgot'
 
@@ -19,11 +20,15 @@ export default function AuthScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [publicReviewNoticeAccepted, setPublicReviewNoticeAccepted] = useState(false)
+  const [publicReviewNoticeError, setPublicReviewNoticeError] = useState('')
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode)
     setError('')
     setNotice('')
+    setPublicReviewNoticeAccepted(false)
+    setPublicReviewNoticeError('')
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,6 +36,10 @@ export default function AuthScreen() {
     setError('')
     if (mode === 'register' && password !== confirmPassword) {
       setError('As senhas precisam ser iguais.')
+      return
+    }
+    if (mode === 'register' && !publicReviewNoticeAccepted) {
+      setPublicReviewNoticeError('Confirme que entende que suas reviews serão públicas para criar a conta.')
       return
     }
 
@@ -42,7 +51,7 @@ export default function AuthScreen() {
         const previousPath = `${location.pathname}${location.search}`
         navigate('/settings/profile', { replace: true })
         try {
-          await signUp(username, email, password, confirmPassword)
+          await signUp(username, email, password, confirmPassword, { accepted: true, version: publicReviewNotice.version })
         } catch (signUpError) {
           navigate(previousPath, { replace: true })
           throw signUpError
@@ -76,18 +85,26 @@ export default function AuthScreen() {
       <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-tabs"><button type="button" className={mode === 'login' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => changeMode('login')}>Entrar</button><button type="button" className={mode === 'register' ? 'auth-tab auth-tab--active' : 'auth-tab'} onClick={() => changeMode('register')}>Criar conta</button></div>
         <div className="auth-heading"><p className="eyebrow">{mode === 'login' ? 'BEM-VINDO DE VOLTA' : mode === 'register' ? 'COMECE SUA COLEÇÃO' : 'RECUPERE O ACESSO'}</p><h2 id="auth-title">{mode === 'login' ? 'Entre na sua conta.' : mode === 'register' ? 'Crie seu espaço.' : 'Esqueceu sua senha?'}</h2><p>{mode === 'login' ? 'Continue de onde sua última escuta parou.' : mode === 'register' ? 'Leva menos de um minuto para começar.' : 'Enviaremos as instruções para o seu email.'}</p></div>
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" aria-label={mode === 'register' ? 'Criar conta' : mode === 'login' ? 'Entrar' : 'Recuperar senha'} onSubmit={handleSubmit}>
           {mode === 'register' && <label>Nome de usuário<input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="como você quer ser chamado" minLength={3} required autoComplete="username" /></label>}
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" required autoComplete="email" /></label>
           {mode !== 'forgot' && <label>Senha<div className="password-field"><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === 'register' ? 'pelo menos 8 caracteres' : 'sua senha'} minLength={mode === 'register' ? 8 : 1} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>}
           {mode === 'register' && <label>Confirmar senha<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="repita sua senha" minLength={8} required autoComplete="new-password" /></label>}
+          {mode === 'register' && <div>
+            <label className="auth-review-notice">
+              <input type="checkbox" checked={publicReviewNoticeAccepted} required disabled={isSubmitting} aria-invalid={Boolean(publicReviewNoticeError)} aria-describedby={`public-review-notice-help${publicReviewNoticeError ? ' public-review-notice-error' : ''}`} onChange={(event) => { setPublicReviewNoticeAccepted(event.target.checked); setPublicReviewNoticeError('') }} />
+              <span>{publicReviewNotice.text}</span>
+            </label>
+            <p className="auth-review-notice-help" id="public-review-notice-help">Esta confirmação não autoriza o uso dos seus dados para treinamento de ML.</p>
+            {publicReviewNoticeError && <p className="form-error" id="public-review-notice-error" role="alert">{publicReviewNoticeError}</p>}
+          </div>}
           {mode === 'login' && <button type="button" className="forgot-button" onClick={() => changeMode('forgot')}>Esqueci minha senha</button>}
           {mode === 'forgot' && <button type="button" className="forgot-button" onClick={() => changeMode('login')}>Voltar para entrar</button>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {notice && <p className="form-notice" role="status">{notice}</p>}
           <button className="auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Enviando...' : mode === 'login' ? 'Entrar na minha conta' : mode === 'register' ? 'Criar minha conta' : 'Enviar instruções'}<ArrowRight size={17} /></button>
         </form>
-        <p className="auth-legal">Ao continuar, você concorda com os termos de uso do myCDrecords.</p>
+        {mode !== 'register' && <p className="auth-legal">Ao continuar, você concorda com os termos de uso do myCDrecords.</p>}
       </section>
     </main>
   )

@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
-import { StrictMode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from '../App'
 import * as api from '../services/api'
@@ -9,7 +9,7 @@ import type { ApiListDetails } from '../types/api'
 import ListDetailPage from './ListDetailPage'
 
 const session = vi.hoisted(() => ({ status: 'anonymous', user: null as { id: number; username: string } | null, retry: vi.fn() }))
-vi.mock('../contexts/SessionContext', () => ({ useSession: () => session }))
+vi.mock('../contexts/SessionContext', () => ({ useSession: () => session, SessionProvider: ({ children }: { children: ReactNode }) => children }))
 vi.mock('../services/api', async (original) => ({ ...(await original<typeof api>()), getList: vi.fn(), removeAlbumFromList: vi.fn(), setListSaved: vi.fn(), moveListItem: vi.fn() }))
 vi.mock('../components/AppShell', () => ({ default: () => <main><Outlet /></main> }))
 const list: ApiListDetails = {

@@ -97,7 +97,10 @@ export default function RecommendationsPage() {
   return <div className="recs-page">
     <h1 className="page-title" tabIndex={-1} ref={headingRef}>Para você</h1>
     <p className="recs-intro">Sugestões com base no que você avalia e nos estilos e artistas que escolher.</p>
-    <div className="recs-tools"><Link className="secondary-button" to="/recommendations/dismissed">Rever dispensados</Link></div>
+    <div className="recs-tools">
+      <Link className="secondary-button" to="/recommendations/dismissed">Rever dispensados</Link>
+      {import.meta.env.DEV && <Link className="secondary-button" to="/recommendations/lab">Laboratório sintético</Link>}
+    </div>
     <RecommendationPreferencesPanel onSaved={reload} />
     {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
     {resource.status === 'error' && <ErrorBox message="Não foi possível carregar as sugestões." onRetry={reload} />}

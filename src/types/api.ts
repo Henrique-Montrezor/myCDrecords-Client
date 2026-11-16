@@ -5,6 +5,42 @@ export type ApiUser = {
   emailVerified?: boolean
 }
 
+export const publicReviewNotice = {
+  version: 'public-reviews-v1',
+  text: 'Entendo que minhas reviews serão públicas e que não devo publicar dados pessoais meus ou de terceiros.',
+} as const
+
+export type PublicReviewNoticeAcknowledgement = {
+  accepted: true
+  version: typeof publicReviewNotice.version
+}
+
+export type RecommendationLabItem = { albumId: string; score: number }
+export type RecommendationLabSnapshot = {
+  schemaVersion: 1
+  mode: 'synthetic'
+  modelVersion: 'pytorch-bpr-v1'
+  datasetVersion: 'synthetic-families-v1'
+  snapshotId: string
+  generatedAt: string
+  promotionAllowed: false
+  realWorldQuality: 'not_measured'
+  training: { initialLoss: number; finalLoss: number; epochs: number; seed: number; torchVersion: string }
+  evaluation: {
+    protocol: 'synthetic-leave-one-out'
+    k: 3
+    model: { recall: number; ndcg: number }
+    baseline: { recall: number; ndcg: number }
+  }
+  profiles: Array<{
+    id: string
+    trainingAlbums: string[]
+    heldOutAlbum: string
+    recommendations: RecommendationLabItem[]
+    baseline: RecommendationLabItem[]
+  }>
+}
+
 export type AuthResponse = {
   message: string
   user?: ApiUser

@@ -1,6 +1,7 @@
 import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, DismissedRecommendationsPage, DismissedRecommendationsResponse, FeedScope, PublicProfile, RatingSummary, RecommendationPreferences, RecommendationReason, RecommendationsPage, RecommendationsResponse, RecommendedAlbum, TrackResult } from '../types/api'
 import type { ApiDiscoverySelection, DiscoveryFilters, DiscoveryPage, DiscoveryResponse, DiscoverySelectionData } from '../types/api'
 import type { ListDiscoveryFilters, ListDiscoveryPage, ListImageKind } from '../types/api'
+import type { PublicReviewNoticeAcknowledgement, RecommendationLabSnapshot } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3004/api'
 let accessToken: string | null = null
@@ -32,21 +33,27 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}, responseType: 'json' | 'blob' = 'json'): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}, responseType: 'json' | 'blob' = 'json', target: 'api' | 'ml-lab' = 'api'): Promise<T> {
+  const isLab = target === 'ml-lab'
+  if (isLab && !import.meta.env.DEV) throw new ApiError(404, { message: 'Laboratório disponível apenas em desenvolvimento.' })
   const headers = new Headers(options.headers)
   if (!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json')
-  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+  if (accessToken && !isLab) headers.set('Authorization', `Bearer ${accessToken}`)
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${isLab ? 'http://localhost:3005/api' : API_BASE_URL}${path}`, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: isLab ? 'omit' : 'include',
   })
 
   const contentType = response.headers.get('content-type') ?? ''
   const payload = response.ok && responseType === 'blob' ? await response.blob() : contentType.includes('application/json') ? await response.json() : undefined
   if (!response.ok) throw new ApiError(response.status, { requestId: response.headers.get('x-request-id') ?? undefined, ...payload })
   return payload as T
+}
+
+export function getRecommendationLab(signal?: AbortSignal): Promise<RecommendationLabSnapshot> {
+  return request('/recommendations/lab', { signal }, 'json', 'ml-lab')
 }
 
 function jsonBody<T extends object>(body: T): RequestInit {
@@ -59,8 +66,8 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return response
 }
 
-export async function register(username: string, email: string, password: string, confirmPassword: string): Promise<AuthResponse> {
-  const response = await request<AuthResponse>('/auth/register', jsonBody({ username, email, password, confirmPassword }))
+export async function register(username: string, email: string, password: string, confirmPassword: string, publicReviewNotice: PublicReviewNoticeAcknowledgement): Promise<AuthResponse> {
+  const response = await request<AuthResponse>('/auth/register', jsonBody({ username, email, password, confirmPassword, publicReviewNotice }))
   setAccessToken(response.accessToken)
   return response
 }

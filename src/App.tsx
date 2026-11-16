@@ -5,6 +5,7 @@ import SessionGate from './components/SessionGate'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
 import PublicListLayout from './components/PublicListLayout'
+import { SessionProvider } from './contexts/SessionContext'
 
 // Home stays in the main bundle (first screen after login); everything else loads on demand.
 const AlbumPage = lazy(() => import('./album-page'))
@@ -19,6 +20,7 @@ const DismissedRecommendationsPage = lazy(() => import('./pages/DismissedRecomme
 const ResetPasswordScreen = lazy(() => import('./components/ResetPasswordScreen'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const VerifyEmailScreen = lazy(() => import('./components/VerifyEmailScreen'))
+const RecommendationLabPage = import.meta.env.DEV ? lazy(() => import('./pages/RecommendationLabPage')) : null
 
 function RouteFallback() {
   return <p className="loading-copy" role="status">Carregando...</p>
@@ -46,7 +48,7 @@ function VerifyEmailRoute() {
   return token ? <VerifyEmailScreen token={token} /> : <Navigate to="/" replace />
 }
 
-function App() {
+function ApplicationRoutes() {
   return <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/auth/reset-password" element={<ResetPasswordRoute />} />
@@ -71,6 +73,13 @@ function App() {
       </Route>
     </Routes>
   </Suspense>
+}
+
+function App() {
+  return <Routes>
+    {RecommendationLabPage && <Route path="/recommendations/lab" element={page(<RecommendationLabPage />)} />}
+    <Route path="*" element={<SessionProvider><ApplicationRoutes /></SessionProvider>} />
+  </Routes>
 }
 
 export default App

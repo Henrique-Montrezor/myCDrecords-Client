@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { ApiError, getProfile, isAbortError, login, logout, refreshSession, register, setAccessToken } from '../services/api'
-import type { ApiUser } from '../types/api'
+import type { ApiUser, PublicReviewNoticeAcknowledgement } from '../types/api'
 
 type SessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'unavailable'
 
@@ -9,7 +9,7 @@ type SessionContextValue = {
   avatarUrl: string | null
   status: SessionStatus
   signIn: (email: string, password: string) => Promise<ApiUser>
-  signUp: (username: string, email: string, password: string, confirmPassword: string) => Promise<ApiUser>
+  signUp: (username: string, email: string, password: string, confirmPassword: string, publicReviewNotice: PublicReviewNoticeAcknowledgement) => Promise<ApiUser>
   signOut: () => Promise<void>
   setAvatarUrl: (url: string | null) => void
   markEmailVerified: () => void
@@ -74,8 +74,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return response.user
   }
 
-  async function signUp(username: string, email: string, password: string, confirmPassword: string) {
-    const response = await register(username, email, password, confirmPassword)
+  async function signUp(username: string, email: string, password: string, confirmPassword: string, publicReviewNotice: PublicReviewNoticeAcknowledgement) {
+    const response = await register(username, email, password, confirmPassword, publicReviewNotice)
     if (!response.user) throw new Error('A API não retornou os dados do usuário.')
     setUser(response.user)
     setStatus('authenticated')
