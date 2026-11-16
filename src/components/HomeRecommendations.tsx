@@ -8,6 +8,7 @@ import { getRecommendations } from '../services/api'
 import type { Album, RecommendationKind } from '../types/api'
 import ErrorBox from './ErrorBox'
 import AlbumCard from './AlbumCard'
+import RecommendationPilotPanel from './RecommendationPilotPanel'
 
 // Below this many reviews the suggestions are still generic.
 const REVIEWS_FOR_TASTE = 3
@@ -86,5 +87,6 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
       {data.albums.length === 0 && hasSignals && <div className="empty-state"><p>Ainda não temos sugestões para você. Avalie mais álbuns para afinar o seu gosto.</p><Link className="secondary-button" to="/search"><Sparkles size={15} /> Explorar álbuns</Link></div>}
       {needsMoreReviews && data.albums.length > 0 && <p className="rec-nudge">Avalie mais discos para as sugestões ficarem mais certeiras. <Link to="/search">Buscar álbuns</Link></p>}
     </>}
+    <RecommendationPilotPanel />
   </aside>
 }

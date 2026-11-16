@@ -2,6 +2,7 @@ import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, A
 import type { ApiDiscoverySelection, DiscoveryFilters, DiscoveryPage, DiscoveryResponse, DiscoverySelectionData } from '../types/api'
 import type { ListDiscoveryFilters, ListDiscoveryPage, ListImageKind } from '../types/api'
 import type { PublicReviewNoticeAcknowledgement, RecommendationLabSnapshot } from '../types/api'
+import type { RecommendationPilotNotice, RecommendationPilotParticipation } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3004/api'
 let accessToken: string | null = null
@@ -54,6 +55,24 @@ export async function request<T>(path: string, options: RequestOptions = {}, res
 
 export function getRecommendationLab(signal?: AbortSignal): Promise<RecommendationLabSnapshot> {
   return request('/recommendations/lab', { signal }, 'json', 'ml-lab')
+}
+
+export function getRecommendationPilotNotice(signal?: AbortSignal): Promise<RecommendationPilotNotice> {
+  return request('/recommendations/pilot/notice', { signal })
+}
+
+export function getRecommendationPilotParticipation(signal?: AbortSignal): Promise<RecommendationPilotParticipation> {
+  return request('/recommendations/pilot/participation', { signal })
+}
+
+export function joinRecommendationPilot(noticeVersion: string): Promise<{ participating: true; noticeVersion: string }> {
+  return request('/recommendations/pilot/participation', {
+    method: 'PUT', body: JSON.stringify({ accepted: true, noticeVersion }),
+  })
+}
+
+export function withdrawRecommendationPilot(): Promise<{ participating: false }> {
+  return request('/recommendations/pilot/participation', { method: 'DELETE' })
 }
 
 function jsonBody<T extends object>(body: T): RequestInit {

@@ -694,6 +694,12 @@ h1 em { color: var(--green); font-style: normal; }
 .recs-about { margin-top: 30px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .recs-about summary { min-height: 44px; display: flex; align-items: center; color: var(--soft); cursor: pointer; }
 .recs-about p + p { margin-top: 8px; }
+.pilot-panel { border-top: 1px solid var(--line); padding-top: 12px; }
+.pilot-contents { display: grid; gap: 12px; overflow-wrap: anywhere; }
+.pilot-contents p { margin: 0; }
+.pilot-contents button { white-space: normal; max-width: 100%; }
+.pilot-acknowledgement { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; margin-bottom: 12px; cursor: pointer; }
+.pilot-acknowledgement input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--green-light); }
 .recs-about a { color: var(--green-light); text-decoration: underline; text-underline-offset: 3px; }
 .recs-tools { display: flex; justify-content: flex-end; margin-top: 16px; }
 .taste-preferences { display: grid; gap: 16px; margin: 24px 0 30px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

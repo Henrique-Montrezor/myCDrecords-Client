@@ -15,6 +15,25 @@ export type PublicReviewNoticeAcknowledgement = {
   version: typeof publicReviewNotice.version
 }
 
+export type RecommendationPilotNotice = {
+  version: string
+  responsible: string
+  contact: string
+  purpose: string
+  text: string
+  data: string
+  retention: string
+  receipts: string
+  withdrawal: string
+}
+
+export type RecommendationPilotParticipation = {
+  invited: boolean
+  participating: boolean
+  closed: boolean
+  noticeVersion: string | null
+}
+
 export type RecommendationLabItem = { albumId: string; score: number }
 export type RecommendationLabSnapshot = {
   schemaVersion: 1

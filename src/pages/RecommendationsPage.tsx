@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ErrorBox from '../components/ErrorBox'
 import RecommendationPreferencesPanel from '../components/RecommendationPreferencesPanel'
+import RecommendationPilotPanel from '../components/RecommendationPilotPanel'
 import { useResource } from '../hooks/useResource'
 import { formatRecommendationReason } from '../lib/format'
 import { dismissRecommendation, getRecommendations, undoDismissRecommendation } from '../services/api'
@@ -102,6 +103,7 @@ export default function RecommendationsPage() {
       {import.meta.env.DEV && <Link className="secondary-button" to="/recommendations/lab">Laboratório sintético</Link>}
     </div>
     <RecommendationPreferencesPanel onSaved={reload} />
+    <RecommendationPilotPanel />
     {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
     {resource.status === 'error' && <ErrorBox message="Não foi possível carregar as sugestões." onRetry={reload} />}
     <div className="share-status" role="status">
