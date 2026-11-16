@@ -338,6 +338,7 @@ export type ApiFeedItem =
 export type FeedScope = 'following' | 'friends'
 
 export type RecommendationReason =
+  | { type: 'ml' }
   | { type: 'tags'; tags: string[] }
   | { type: 'collaborative'; people: number }
   | { type: 'exploration'; tag: string; from: string }
@@ -360,7 +361,15 @@ export type TasteProfile = { reviews: number; favorites: number }
 
 export type RecommendationEvidence = { signals: number; required: number }
 
+export type RecommendationML = {
+  status: 'active' | 'cold_start' | 'no_candidates'
+  modelVersion: string
+  trainedOn: 'fictional-profiles'
+  supportedArtists: string[]
+}
+
 export type RecommendationsResponse = {
+  ml?: RecommendationML
   tipo: RecommendationKind
   data: ApiRecommendation[]
   perfil?: TasteProfile
@@ -373,6 +382,7 @@ export type RecommendationsResponse = {
 export type RecommendedAlbum = Album & { reasons: RecommendationReason[] }
 
 export type RecommendationsPage = {
+  ml?: RecommendationML
   kind: RecommendationKind
   albums: RecommendedAlbum[]
   profile: TasteProfile

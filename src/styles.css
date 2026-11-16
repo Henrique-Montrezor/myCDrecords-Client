@@ -695,6 +695,10 @@ h1 em { color: var(--green); font-style: normal; }
 .recs-about summary { min-height: 44px; display: flex; align-items: center; color: var(--soft); cursor: pointer; }
 .recs-about p + p { margin-top: 8px; }
 .pilot-panel { border-top: 1px solid var(--line); padding-top: 12px; }
+.recommendation-model { border-block: 1px solid var(--line); padding-block: 16px; margin-block: 16px; display: grid; gap: 12px; color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.recommendation-model p, .recommendation-model label { margin: 0; }
+.recommendation-model a { color: var(--green-light); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; display: flex; align-items: center; }
+.recommendation-model summary { min-height: 44px; cursor: pointer; color: var(--soft); }
 .pilot-contents { display: grid; gap: 12px; overflow-wrap: anywhere; }
 .pilot-contents p { margin: 0; }
 .pilot-contents button { white-space: normal; max-width: 100%; }
@@ -710,7 +714,7 @@ h1 em { color: var(--green); font-style: normal; }
 .taste-control { display: grid; gap: 7px; }
 .taste-control label { color: var(--soft); font-size: 12px; font-weight: 600; }
 .taste-input-row { display: flex; gap: 9px; }
-.taste-input-row input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--cream); background: var(--panel); }
+.taste-input-row input, .taste-input-row select { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; color: var(--cream); background: var(--panel); }
 .taste-input-row input::placeholder { color: var(--muted); }
 .taste-input-row .secondary-button { min-height: 44px; }
 .taste-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -7px 0 0; padding: 0; list-style: none; }

@@ -28,7 +28,7 @@ const personal: Page = {
   profile: { reviews: 4, favorites: 1 }, evidence: { signals: 4, required: 3 }, total: 3, nextOffset: 2,
 }
 
-const renderPage = () => render(<MemoryRouter><RecommendationsPage /></MemoryRouter>)
+const renderPage = (route = '/recommendations') => render(<MemoryRouter initialEntries={[route]}><RecommendationsPage /></MemoryRouter>)
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -40,6 +40,42 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('RecommendationsPage', () => {
+  it('opts into ML explicitly, preserves the mode in requests and labels simulated training', async () => {
+    vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+      ml: { status: 'active', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure', 'Miles Davis'] },
+      albums: [disc('a', 'In the Flat Field', [{ type: 'ml' }])],
+    }))
+    const { container } = renderPage()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
+    await waitFor(() => expect(api.getRecommendations).toHaveBeenLastCalledWith(expect.any(AbortSignal), 12, 0, 'ml'))
+    expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
+    expect(await screen.findByText(/Treinado com perfis fictícios/)).toBeTruthy()
+    expect(screen.getByText('Por afinidade entre artistas no modelo experimental')).toBeTruthy()
+    expect((await axe.run(container)).violations).toEqual([])
+  })
+
+  it('does not describe a cold-start fallback as an ML ranking', async () => {
+    vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+      ml: { status: 'cold_start', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure'] },
+    }))
+    renderPage('/recommendations?engine=ml')
+    expect(await screen.findByText(/Sem sinais positivos de artistas suportados/)).toBeTruthy()
+    expect(screen.getByText(/Exibindo o motor original, não o ranking ML/)).toBeTruthy()
+  })
+
+  it('lets a new profile choose supported artists without depending on external search', async () => {
+    vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+      ml: { status: 'cold_start', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure', 'Miles Davis'] },
+    }))
+    renderPage('/recommendations?engine=ml')
+    await screen.findByText(/Sem sinais positivos de artistas suportados/)
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Artista' }), 'The Cure')
+    await userEvent.click(screen.getByRole('button', { name: 'Adicionar artista' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar preferências' }))
+    expect(api.saveRecommendationPreferences).toHaveBeenCalledWith({ genres: [], artists: ['The Cure'] })
+    expect(await screen.findByText(/Preferências salvas/)).toBeTruthy()
+  })
+
   it('explains every album with the signals that were used and has no axe violations', async () => {
     vi.mocked(api.getRecommendations).mockResolvedValue(personal)
     const { container } = renderPage()

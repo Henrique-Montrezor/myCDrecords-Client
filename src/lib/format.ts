@@ -34,6 +34,7 @@ const people = (count: number) => `${count} ${count === 1 ? 'pessoa' : 'pessoas'
 
 export function formatRecommendationReason(reason: RecommendationReason) {
   switch (reason.type) {
+    case 'ml': return 'Por afinidade entre artistas no modelo experimental'
     case 'tags': return `Pelas suas notas em ${tagList(reason.tags)}`
     case 'collaborative': return `Bem avaliado por ${people(reason.people)} com gosto próximo`
     case 'exploration': return `Para explorar: ${reason.tag}, vizinho de ${reason.from}`

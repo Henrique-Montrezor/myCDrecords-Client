@@ -6,7 +6,7 @@ import type { ArtistSummary, RecommendationPreferences } from '../types/api'
 
 const emptyPreferences: RecommendationPreferences = { genres: [], artists: [] }
 
-export default function RecommendationPreferencesPanel({ onSaved }: { onSaved: () => void }) {
+export default function RecommendationPreferencesPanel({ onSaved, modelArtists }: { onSaved: () => void; modelArtists?: string[] }) {
   const { resource, reload } = useResource((signal) => getRecommendationPreferences(signal), 'recommendation-preferences')
   const [editedPreferences, setEditedPreferences] = useState<RecommendationPreferences | null>(null)
   const [genreInput, setGenreInput] = useState('')
@@ -38,6 +38,14 @@ export default function RecommendationPreferencesPanel({ onSaved }: { onSaved: (
 
   async function findArtists(event: FormEvent) {
     event.preventDefault()
+    if (modelArtists) {
+      if (!modelArtists.includes(artistQuery)) {
+        setError('Selecione um artista suportado pelo modelo.')
+        return
+      }
+      addArtist(artistQuery)
+      return
+    }
     const query = artistQuery.trim()
     if (query.length < 2) {
       setError('Digite pelo menos 2 caracteres para buscar um artista.')
@@ -54,10 +62,10 @@ export default function RecommendationPreferencesPanel({ onSaved }: { onSaved: (
     }
   }
 
-  function addArtist(artist: ArtistSummary) {
-    changePreferences((current) => current.artists.some((name) => name.toLowerCase() === artist.name.toLowerCase())
+  function addArtist(artist: string) {
+    changePreferences((current) => current.artists.some((name) => name.toLowerCase() === artist.toLowerCase())
       ? current
-      : { ...current, artists: [...current.artists, artist.name].slice(0, 20) })
+      : { ...current, artists: [...current.artists, artist].slice(0, 20) })
     setArtistResults([])
     setArtistQuery('')
     setError('')
@@ -89,7 +97,9 @@ export default function RecommendationPreferencesPanel({ onSaved }: { onSaved: (
       </div>
       {tasteCount > 0 && <span className="taste-count">{tasteCount} escolha{tasteCount === 1 ? '' : 's'}</span>}
     </div>
-    <p className="taste-preferences-copy">Escolha estilos e artistas para orientar as sugestões. Com três escolhas explícitas ou sinais suficientes nas suas avaliações, elas passam a ser personalizadas.</p>
+    <p className="taste-preferences-copy">{modelArtists
+      ? 'No ML experimental, artistas suportados orientam as sugestões. Estilos são usados apenas pelo motor original. Adicione artistas abaixo e salve suas preferências.'
+      : 'Escolha estilos e artistas para orientar as sugestões. Com três escolhas explícitas ou sinais suficientes nas suas avaliações, elas passam a ser personalizadas.'}</p>
     {loading && <p className="loading-copy" role="status">Carregando suas preferências...</p>}
     {loadError && <div className="taste-preferences-error" role="alert">
       <span>Não foi possível carregar suas preferências.</span>
@@ -110,12 +120,17 @@ export default function RecommendationPreferencesPanel({ onSaved }: { onSaved: (
       <form className="taste-control" onSubmit={findArtists}>
         <label htmlFor="taste-artist">Artista</label>
         <div className="taste-input-row">
-          <input id="taste-artist" value={artistQuery} maxLength={120} onChange={(event) => setArtistQuery(event.target.value)} placeholder="Buscar no MusicBrainz" />
-          <button type="submit" className="secondary-button" disabled={searching || artistQuery.trim().length < 2}>{searching ? 'Buscando...' : 'Buscar'}</button>
+          {modelArtists
+            ? <select id="taste-artist" value={artistQuery} disabled={modelArtists.length === 0} onChange={(event) => setArtistQuery(event.target.value)}>
+              <option value="">Selecione um artista suportado</option>
+              {modelArtists.map((name) => <option key={name} value={name} disabled={preferences.artists.includes(name)}>{name}</option>)}
+            </select>
+            : <input id="taste-artist" value={artistQuery} maxLength={120} onChange={(event) => setArtistQuery(event.target.value)} placeholder="Buscar no MusicBrainz" />}
+          <button type="submit" className="secondary-button" disabled={searching || (modelArtists ? !modelArtists.includes(artistQuery) || preferences.artists.length >= 20 : artistQuery.trim().length < 2)}>{modelArtists ? 'Adicionar artista' : searching ? 'Buscando...' : 'Buscar'}</button>
         </div>
       </form>
       {artistResults.length > 0 && <ul className="taste-artist-results" aria-label="Resultados de artistas">{artistResults.map((artist) => <li key={artist.id}>
-        <button type="button" disabled={preferences.artists.some((name) => name.toLowerCase() === artist.name.toLowerCase()) || preferences.artists.length >= 20} onClick={() => addArtist(artist)}>
+        <button type="button" disabled={preferences.artists.some((name) => name.toLowerCase() === artist.name.toLowerCase()) || preferences.artists.length >= 20} onClick={() => addArtist(artist.name)}>
           <span>{artist.name}</span><small>{artist.disambiguation || artist.type || 'MusicBrainz'}</small>
         </button>
       </li>)}</ul>}

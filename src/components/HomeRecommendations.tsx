@@ -1,6 +1,6 @@
 import { Disc3, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
 import { useResource } from '../hooks/useResource'
 import { formatRecommendationReason } from '../lib/format'
@@ -9,6 +9,7 @@ import type { Album, RecommendationKind } from '../types/api'
 import ErrorBox from './ErrorBox'
 import AlbumCard from './AlbumCard'
 import RecommendationPilotPanel from './RecommendationPilotPanel'
+import RecommendationModelControl from './RecommendationModelControl'
 
 // Below this many reviews the suggestions are still generic.
 const REVIEWS_FOR_TASTE = 3
@@ -44,12 +45,20 @@ function TasteInvite({ username }: { username: string | undefined }) {
 }
 
 export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rail' | 'shelf' }) {
+  const [params] = useSearchParams()
+  const mlEnabled = layout === 'rail' && params.get('engine') === 'ml'
+  return <HomeRecommendationsContent key={`${layout}-${mlEnabled}`} layout={layout} mlEnabled={mlEnabled} />
+}
+
+function HomeRecommendationsContent({ layout, mlEnabled }: { layout: 'rail' | 'shelf'; mlEnabled: boolean }) {
   const { user } = useSession()
-  const { resource, reload } = useResource((signal) => getRecommendations(signal, 6), 'home-recommendations')
+  const { resource, reload } = useResource((signal) => mlEnabled
+    ? getRecommendations(signal, 6, 0, 'ml')
+    : getRecommendations(signal, 6), 'home-recommendations')
 
   const data = resource.status === 'ready' ? resource.data : null
   const kind = data?.kind ?? 'popular'
-  const hasSignals = data ? data.profile.reviews > 0 || data.profile.favorites > 0 : true
+  const hasSignals = data ? data.profile.reviews > 0 || data.profile.favorites > 0 || data.ml?.status === 'active' : true
   const needsMoreReviews = data !== null && hasSignals && data.kind !== 'personalizada' && data.profile.reviews < REVIEWS_FOR_TASTE
 
   if (layout === 'shelf') {
@@ -69,14 +78,15 @@ export default function HomeRecommendations({ layout = 'rail' }: { layout?: 'rai
   return <aside className="home-rail" aria-labelledby="home-recs-title" aria-busy={resource.status === 'loading'}>
     <div className="section-heading">
       <div><p className="eyebrow">{copy[kind].eyebrow}</p><h2 id="home-recs-title">{copy[kind].title}</h2></div>
-      {data && data.albums.length > 0 && <Link className="text-button" to="/recommendations">Ver todas</Link>}
+      {data && data.albums.length > 0 && <Link className="text-button" to={`/recommendations${mlEnabled ? '?engine=ml' : ''}`}>Ver todas</Link>}
     </div>
+    <RecommendationModelControl model={data?.ml} />
     {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
     {resource.status === 'error' && <ErrorBox message="Não foi possível carregar as sugestões." onRetry={reload} />}
     {data && <>
       {!hasSignals && <TasteInvite username={user?.username} />}
       {data.albums.length > 0 && <>
-        {reasons[data.kind] && <p className="rec-reason">{reasons[data.kind]}</p>}
+        {reasons[data.kind] && <p className="rec-reason">{data.ml?.status === 'active' ? 'Afinidades do modelo experimental aplicadas ao seu perfil.' : reasons[data.kind]}</p>}
         <ol className="rec-list">{data.albums.map((album) => <li key={album.id}>
           <Link className="rec-item" to={album.link}>
             <span className="rec-cover"><RecCover album={album} /></span>

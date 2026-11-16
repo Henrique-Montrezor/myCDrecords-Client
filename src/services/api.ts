@@ -389,6 +389,7 @@ export function isAbortError(error: unknown) {
 function normalizeReason(value: unknown): RecommendationReason | null {
   if (typeof value !== 'object' || value === null) return null
   const reason = value as Record<string, unknown>
+  if (reason.type === 'ml') return { type: 'ml' }
   if (reason.type === 'tags' && Array.isArray(reason.tags)) {
     const tags = reason.tags.filter((tag): tag is string => typeof tag === 'string')
     return tags.length > 0 ? { type: 'tags', tags } : null
@@ -417,10 +418,11 @@ export function normalizeRecommendation(item: ApiRecommendation): RecommendedAlb
   }
 }
 
-export async function getRecommendations(signal?: AbortSignal, limit = 8, offset = 0): Promise<RecommendationsPage> {
-  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}&offset=${offset}`, { signal })
+export async function getRecommendations(signal?: AbortSignal, limit = 8, offset = 0, engine?: 'ml'): Promise<RecommendationsPage> {
+  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}&offset=${offset}${engine ? '&engine=ml' : ''}`, { signal })
   const albums = (response.data ?? []).map(normalizeRecommendation)
   return {
+    ...(response.ml ? { ml: response.ml } : {}),
     kind: response.tipo,
     albums,
     profile: response.perfil ?? { reviews: 0, favorites: 0 },
