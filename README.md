@@ -12,8 +12,11 @@ Abrir `http://localhost:5173`, com a API em `localhost:3004`. Usar `localhost`, 
 ## Recomendações no feed
 
 - O modo padrão continua no motor original. **Usar ML experimental no meu feed** seleciona `artist-bpr-fictional-v1`, treinado somente com perfis fictícios, mas aplicado privadamente às suas próprias notas, favoritos e artistas escolhidos.
-- Para começar: abrir `http://localhost:5173/recommendations?engine=ml`; em **Ajuste seu gosto**, selecionar artistas suportados, adicionar e salvar. Não depende da busca externa de artistas. Usar **Ver minhas sugestões ML no feed** para abrir `http://localhost:5173/?engine=ml`.
-- A escolha fica na URL; recarregar e voltar preservam o modo, navegar sem `engine=ml` usa o motor original. Os 24 nomes suportados aparecem no painel. Estilos/gêneros não alimentam este modelo.
+- **Para você** é uma seção própria acima das atividades, com capas em uma única faixa rolável, em vez de uma coluna lateral.
+- Para começar: ativar **Usar ML experimental no meu feed** no início ou em **Para você**. Em **Ajuste seu gosto**, selecionar artistas suportados, adicionar e salvar. Não depende da busca externa de artistas.
+- A escolha fica salva na conta via API e vale após recarregar, navegar ou entrar em outro dispositivo. Depois da ativação, a caixa desaparece do feed e de Para você. Para desligar ou religar, abrir **Configurações → Recomendações** (`/settings/recommendations`).
+- O antigo parâmetro `engine=ml` não ativa nem desativa o modelo. Como a versão anterior guardava a escolha apenas na URL, é preciso ativar uma vez para salvá-la na conta; não há migração de aceite presumido. A API precisa da migração aditiva 010 (aplicada na inicialização).
+- Os 24 nomes suportados aparecem nas preferências do modo ML e em **Como escolhemos**. Estilos/gêneros não alimentam este modelo. A ativação da inferência não autoriza coleta ou treinamento.
 - O vetor do perfil e o ranking ML não são salvos nem usados para retreinar. Falta de cobertura informa fallback; indisponibilidade mostra erro/retry. Não há dados Spotify, qualidade real comprovada ou modelo treinado com contas reais.
 - **Piloto de recomendações com ML** abre um painel opcional, carregado somente quando expandido. Ele mostra o aviso público integral e a situação da própria conta.
 - A adesão exige convite, coleta habilitada e confirmação desmarcada por padrão do aviso vigente. Cadastro e aceite de publicação de reviews não autorizam ML.
@@ -33,13 +36,14 @@ npm test
 npm run build
 ```
 
-O incremento ML foi validado com 132 testes e axe-core, lint, tipos e build. As respostas dos testes são sintéticas; os testes não inscrevem contas reais nem ligam coleta.
+O ajuste de seção/configurações foi validado com 138 testes em 28 arquivos,
+axe-core, lint, tipos e build. A suíte passou com `npm test -- --maxWorkers=2`;
+a execução com 28 workers teve um timeout no teste legado de Listas, sem
+alteração de código ou de timeout para contorná-lo. As respostas são sintéticas;
+os testes não inscrevem contas reais nem ligam coleta.
 
-O CDP integrado continuou indisponível. A conferência foi feita por alternativa nativa:
-Edge headless com perfil isolado e todas as APIs interceptadas com fixtures,
-no preview de produção em `localhost:4173`. 375px/1280px sem overflow, alvo 44px,
-foco/ativação por teclado, feed, loading, vazio, fallback, erro/retry e anônimo.
-Nenhuma chamada inesperada à API nem erro JavaScript; requisições externas
-não necessárias ficaram bloqueadas. Isso não comprova relevância do perfil real
-nem substitui login/sinais próprios no app. O navegador e o preview temporários
-são encerrados após a verificação, preservando o servidor de desenvolvimento existente.
+A conferência visual deste ajuste em 375px/1280px continua pendente:
+o navegador integrado falhou por timeout CDP e Edge/Chrome isolados não
+iniciaram/responderam à automação. Testes DOM não comprovam layout real.
+O preview temporário foi encerrado, preservando o servidor de desenvolvimento
+existente; nenhum perfil real foi consultado nessa tentativa.

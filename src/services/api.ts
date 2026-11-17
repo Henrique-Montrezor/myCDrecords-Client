@@ -1,4 +1,4 @@
-import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, DismissedRecommendationsPage, DismissedRecommendationsResponse, FeedScope, PublicProfile, RatingSummary, RecommendationPreferences, RecommendationReason, RecommendationsPage, RecommendationsResponse, RecommendedAlbum, TrackResult } from '../types/api'
+import type { Album, AlbumDetails, AlbumSearchResponse, ApiActivity, ApiAlbum, ApiArtist, ApiComment, ApiErrorPayload, ApiFavorite, ApiFeedItem, ApiList, ApiListDetails, ApiRecommendation, ApiReleaseGroup, ApiReview, ApiTrackResult, ApiUserSummary, ArtistDetails, ArtistRelease, ArtistSummary, AuthResponse, DismissedRecommendationsPage, DismissedRecommendationsResponse, FeedScope, PublicProfile, RatingSummary, RecommendationEnginePreference, RecommendationPreferences, RecommendationReason, RecommendationsPage, RecommendationsResponse, RecommendedAlbum, TrackResult } from '../types/api'
 import type { ApiDiscoverySelection, DiscoveryFilters, DiscoveryPage, DiscoveryResponse, DiscoverySelectionData } from '../types/api'
 import type { ListDiscoveryFilters, ListDiscoveryPage, ListImageKind } from '../types/api'
 import type { PublicReviewNoticeAcknowledgement, RecommendationLabSnapshot } from '../types/api'
@@ -418,10 +418,11 @@ export function normalizeRecommendation(item: ApiRecommendation): RecommendedAlb
   }
 }
 
-export async function getRecommendations(signal?: AbortSignal, limit = 8, offset = 0, engine?: 'ml'): Promise<RecommendationsPage> {
-  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}&offset=${offset}${engine ? '&engine=ml' : ''}`, { signal })
+export async function getRecommendations(signal?: AbortSignal, limit = 8, offset = 0): Promise<RecommendationsPage> {
+  const response = await request<RecommendationsResponse>(`/recommendations?limit=${limit}&offset=${offset}`, { signal })
   const albums = (response.data ?? []).map(normalizeRecommendation)
   return {
+    mlEnabled: response.mlEnabled ?? false,
     ...(response.ml ? { ml: response.ml } : {}),
     kind: response.tipo,
     albums,
@@ -442,6 +443,14 @@ export function undoDismissRecommendation(albumId: string) {
 
 export function getRecommendationPreferences(signal?: AbortSignal) {
   return request<RecommendationPreferences>('/recommendations/preferences', { signal })
+}
+
+export function getRecommendationEngine(signal?: AbortSignal) {
+  return request<RecommendationEnginePreference>('/recommendations/engine', { signal })
+}
+
+export function saveRecommendationEngine(enabled: boolean) {
+  return request<RecommendationEnginePreference>('/recommendations/engine', { method: 'PUT', body: JSON.stringify({ enabled }) })
 }
 
 export function saveRecommendationPreferences(preferences: RecommendationPreferences) {

@@ -30,10 +30,8 @@ export default function HomePage() {
       <div className="hero-wave" />
     </section>
 
-    <div className="home-grid">
-      <HomeFeed />
-      <HomeRecommendations />
-    </div>
+    <HomeRecommendations />
+    <HomeFeed />
 
 
     <section className="section">

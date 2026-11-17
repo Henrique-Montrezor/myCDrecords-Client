@@ -1,10 +1,10 @@
 import { Disc3 } from 'lucide-react'
-import { useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ErrorBox from '../components/ErrorBox'
 import RecommendationPreferencesPanel from '../components/RecommendationPreferencesPanel'
 import RecommendationPilotPanel from '../components/RecommendationPilotPanel'
-import RecommendationModelControl from '../components/RecommendationModelControl'
+import RecommendationModelControl, { RecommendationModelStatus } from '../components/RecommendationModelControl'
 import { useResource } from '../hooks/useResource'
 import { formatRecommendationReason } from '../lib/format'
 import { dismissRecommendation, getRecommendations, undoDismissRecommendation } from '../services/api'
@@ -34,21 +34,21 @@ function Intro({ page }: { page: Page }) {
 }
 
 export default function RecommendationsPage() {
-  const [params] = useSearchParams()
-  const mlEnabled = params.get('engine') === 'ml'
-  return <RecommendationsContent key={String(mlEnabled)} mlEnabled={mlEnabled} />
+  const [generation, setGeneration] = useState(0)
+  return <RecommendationsContent key={generation} focusHeading={generation > 0} onEngineSaved={() => setGeneration((value) => value + 1)} />
 }
 
-function RecommendationsContent({ mlEnabled }: { mlEnabled: boolean }) {
-  const { resource, reload, setResource } = useResource((signal) => mlEnabled
-    ? getRecommendations(signal, PAGE_SIZE, 0, 'ml')
-    : getRecommendations(signal, PAGE_SIZE), 'recommendations')
+function RecommendationsContent({ focusHeading, onEngineSaved }: { focusHeading: boolean; onEngineSaved: () => void }) {
+  const { resource, reload, setResource } = useResource((signal) => getRecommendations(signal, PAGE_SIZE), 'recommendations')
   const [pending, setPending] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ text: string; undo?: Dismissed } | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [moreFailed, setMoreFailed] = useState(false)
   const undoRef = useRef<HTMLButtonElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (focusHeading) headingRef.current?.focus()
+  }, [focusHeading])
 
   const update = (change: (page: Page) => Page) =>
     setResource((current) => current.status === 'ready' ? { status: 'ready', data: change(current.data) } : current)
@@ -90,9 +90,11 @@ function RecommendationsContent({ mlEnabled }: { mlEnabled: boolean }) {
     setMoreFailed(false)
     try {
       // Offset by what is on screen: dismissals already shifted the server ranking.
-      const next = mlEnabled
-        ? await getRecommendations(undefined, PAGE_SIZE, page.albums.length, 'ml')
-        : await getRecommendations(undefined, PAGE_SIZE, page.albums.length)
+      const next = await getRecommendations(undefined, PAGE_SIZE, page.albums.length)
+      if ((next.mlEnabled ?? false) !== (page.mlEnabled ?? false)) {
+        reload()
+        return
+      }
       update((current) => {
         const seen = new Set(current.albums.map((album) => album.id))
         return { ...current, albums: [...current.albums, ...next.albums.filter((album) => !seen.has(album.id))], total: next.total, nextOffset: next.nextOffset }
@@ -105,15 +107,18 @@ function RecommendationsContent({ mlEnabled }: { mlEnabled: boolean }) {
   }
 
   const page = resource.status === 'ready' ? resource.data : null
+  const mlEnabled = page?.mlEnabled ?? false
 
   return <div className="recs-page">
     <h1 className="page-title" tabIndex={-1} ref={headingRef}>Para você</h1>
     <p className="recs-intro">{mlEnabled ? 'Sugestões experimentais pelas suas notas, favoritos e artistas escolhidos.' : 'Sugestões com base no que você avalia e nos estilos e artistas que escolher.'}</p>
     <div className="recs-tools">
       <Link className="secondary-button" to="/recommendations/dismissed">Rever dispensados</Link>
+      <Link className="secondary-button" to="/settings/recommendations">Configurar recomendações</Link>
       {import.meta.env.DEV && <Link className="secondary-button" to="/recommendations/lab">Laboratório sintético</Link>}
     </div>
-    <RecommendationModelControl model={page?.ml} />
+    {page && <RecommendationModelControl enabled={mlEnabled} onSaved={onEngineSaved} />}
+    <RecommendationModelStatus model={page?.ml} />
     <RecommendationPreferencesPanel onSaved={reload} modelArtists={mlEnabled ? page?.ml?.supportedArtists ?? [] : undefined} />
     <RecommendationPilotPanel />
     {resource.status === 'loading' && <p className="loading-copy" role="status">Procurando sugestões...</p>}
@@ -140,6 +145,7 @@ function RecommendationsContent({ mlEnabled }: { mlEnabled: boolean }) {
       {page.nextOffset !== null && !moreFailed && <button type="button" className="secondary-button recs-more" disabled={loadingMore} onClick={() => loadMore(page)}>{loadingMore ? 'Carregando...' : 'Ver mais sugestões'}</button>}
       <details className="recs-about">
         <summary>Como escolhemos</summary>
+        {page.ml && <p>Artistas desta versão: {page.ml.supportedArtists.join(' · ')}. Nomes não listados e preferências só de estilos ainda não alimentam este modelo.</p>}
         {page.ml?.status === 'active'
           ? <p>O PyTorch aprendeu afinidades simuladas entre 24 artistas. Combinamos seus vetores com suas notas 4 e 5, favoritos e artistas escolhidos; notas 1 e 2 afastam. Uma nota explícita prevalece sobre o favorito do mesmo disco. Não usamos estilos/tags nem ações de outras pessoas neste modo. Só entram álbuns do catálogo MusicBrainz, no máximo dois por artista; avaliados, favoritos e dispensados ficam de fora. Seu vetor é descartado após a resposta.</p>
           : <p>Usamos só suas ações no myCDrecords e as preferências que você escolheu: notas 4 e 5 e favoritos aproximam, notas 1 e 2 afastam. Comparamos com as tags e créditos do catálogo MusicBrainz e com pessoas que deram notas altas aos mesmos discos. No máximo dois discos do mesmo artista aparecem entre os dez primeiros, e de vez em quando entra um estilo vizinho para explorar. Discos que você já avaliou, favoritou ou dispensou ficam de fora.</p>}

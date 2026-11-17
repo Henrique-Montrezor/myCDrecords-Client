@@ -369,6 +369,7 @@ export type RecommendationML = {
 }
 
 export type RecommendationsResponse = {
+  mlEnabled?: boolean
   ml?: RecommendationML
   tipo: RecommendationKind
   data: ApiRecommendation[]
@@ -382,6 +383,7 @@ export type RecommendationsResponse = {
 export type RecommendedAlbum = Album & { reasons: RecommendationReason[] }
 
 export type RecommendationsPage = {
+  mlEnabled?: boolean
   ml?: RecommendationML
   kind: RecommendationKind
   albums: RecommendedAlbum[]
@@ -392,6 +394,7 @@ export type RecommendationsPage = {
 }
 
 export type RecommendationPreferences = { genres: string[]; artists: string[] }
+export type RecommendationEnginePreference = { enabled: boolean }
 
 export type DismissedRecommendationsResponse = {
   data: ApiRecommendation[]

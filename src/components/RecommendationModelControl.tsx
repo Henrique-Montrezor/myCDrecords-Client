@@ -1,43 +1,55 @@
-import { useEffect, useRef } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import type { RecommendationML } from '../types/api'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { saveRecommendationEngine } from '../services/api'
+import type { RecommendationEnginePreference, RecommendationML } from '../types/api'
+import ErrorBox from './ErrorBox'
 
-export default function RecommendationModelControl({ model }: { model?: RecommendationML }) {
-  const [params, setParams] = useSearchParams()
-  const location = useLocation()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const enabled = params.get('engine') === 'ml'
-  useEffect(() => {
-    const state: unknown = location.state
-    if (typeof state === 'object' && state !== null && 'focusRecommendationModel' in state && state.focusRecommendationModel === true) {
-      inputRef.current?.focus()
+export function RecommendationModelStatus({ model }: { model?: RecommendationML }) {
+  if (!model) return null
+  return <div className="recommendation-model-status" role="status">
+    <p>Treinado com perfis fictícios, sem qualidade real comprovada.</p>
+    {model.status === 'active'
+      ? <p>Modelo PyTorch ativo: {model.modelVersion}.</p>
+      : <><p>{model.status === 'cold_start' ? 'Sem sinais positivos de artistas suportados.' : 'Sem álbuns inéditos compatíveis no catálogo local.'}</p>
+        <p>Exibindo o motor original, não o ranking ML.</p></>}
+  </div>
+}
+
+export default function RecommendationModelControl({ enabled, onSaved, settings = false }: {
+  enabled: boolean
+  onSaved: (preference: RecommendationEnginePreference) => void
+  settings?: boolean
+}) {
+  const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function save(next: boolean) {
+    setPending(true)
+    setFailed(false)
+    setSaved(false)
+    try {
+      const preference = await saveRecommendationEngine(next)
+      setSaved(true)
+      onSaved(preference)
+    } catch {
+      setFailed(true)
+    } finally {
+      setPending(false)
     }
-  }, [location.state])
+  }
+
+  if (enabled && !settings) return null
   return <section className="recommendation-model" aria-label="Modelo de recomendações">
     <p className="eyebrow">LADO B · ML EXPERIMENTAL</p>
     <p>Treinado com perfis fictícios, sem qualidade real comprovada.</p>
-    <p>Usa suas notas, favoritos e artistas escolhidos apenas na inferência privada, sem retreinar nem salvar seu vetor. Não usa Spotify. A escolha fica no endereço desta página.</p>
+    <p>Usa suas notas, favoritos e artistas escolhidos apenas na inferência privada, sem retreinar nem salvar seu vetor. Não usa Spotify. A escolha fica salva na sua conta; você pode desativar nas configurações. Isso não autoriza coleta para treinamento.</p>
     <label className="pilot-acknowledgement">
-      <input ref={inputRef} type="checkbox" checked={enabled} onChange={(event) => {
-        const next = new URLSearchParams(params)
-        if (event.target.checked) next.set('engine', 'ml')
-        else next.delete('engine')
-        setParams(next, { state: { focusRecommendationModel: true } })
-      }} />
+      <input type="checkbox" checked={enabled} disabled={pending} onChange={(event) => void save(event.target.checked)} />
       Usar ML experimental no meu feed
     </label>
-    {enabled && model && <div role="status">
-      {model.status === 'active'
-        ? <p>Modelo PyTorch ativo: {model.modelVersion}.</p>
-        : <><p>{model.status === 'cold_start' ? 'Sem sinais positivos de artistas suportados.' : 'Sem álbuns inéditos compatíveis no catálogo local.'}</p>
-          <p>Exibindo o motor original, não o ranking ML.</p></>}
-    </div>}
-    <Link to={`/recommendations${enabled ? '?engine=ml' : ''}`}>Editar meu gosto em Para você</Link>
-    {enabled && <Link to="/?engine=ml">Ver minhas sugestões ML no feed</Link>}
-    {enabled && model && <details>
-      <summary>Artistas desta versão</summary>
-      <p>{model.supportedArtists.join(' · ')}</p>
-      <p>Escolha artistas nas preferências ou avalie discos deles. Nomes não listados e preferências só de estilos ainda não alimentam este modelo.</p>
-    </details>}
+    <p role="status">{pending ? 'Salvando escolha...' : saved ? 'Escolha salva na sua conta.' : ''}</p>
+    {failed && <ErrorBox message="Não foi possível salvar a escolha do modelo." onRetry={() => void save(!enabled)} />}
+    <Link to="/recommendations">Editar meu gosto em Para você</Link>
   </section>
 }

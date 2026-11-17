@@ -1,4 +1,4 @@
-import { Compass, Disc3, Home, ListMusic, LogOut, Menu, Search, Sparkles, UserRound, X } from 'lucide-react'
+import { Compass, Disc3, Home, ListMusic, LogOut, Menu, Search, Settings, Sparkles, UserRound, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../contexts/SessionContext'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/discover', label: 'Descobrir', icon: Compass, end: false },
   { to: '/recommendations', label: 'Para você', icon: Sparkles, end: false },
   { to: '/lists', label: 'Listas', icon: ListMusic, end: false },
+  { to: '/settings/recommendations', label: 'Configurações', icon: Settings, end: false },
 ]
 
 export default function AppShell() {

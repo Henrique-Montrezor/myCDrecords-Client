@@ -14,6 +14,7 @@ const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 const ListDetailPage = lazy(() => import('./pages/ListDetailPage'))
 const ListsPage = lazy(() => import('./pages/ListsPage'))
 const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'))
+const RecommendationSettingsPage = lazy(() => import('./pages/RecommendationSettingsPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage'))
 const DismissedRecommendationsPage = lazy(() => import('./pages/DismissedRecommendationsPage'))
@@ -68,6 +69,7 @@ function ApplicationRoutes() {
           <Route path="lists" element={page(<ListsPage />)} />
           <Route path="profile/:username" element={page(<ProfilePage />)} />
           <Route path="settings/profile" element={page(<ProfileEditPage />)} />
+          <Route path="settings/recommendations" element={page(<RecommendationSettingsPage />)} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

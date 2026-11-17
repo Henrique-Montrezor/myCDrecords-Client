@@ -7,6 +7,11 @@ import * as api from '../services/api'
 import type { ApiFeedItem, RecommendationKind, RecommendedAlbum } from '../types/api'
 import HomeFeed from './HomeFeed'
 import HomeRecommendations from './HomeRecommendations'
+import HomePage from '../pages/HomePage'
+
+vi.mock('../hooks/useTrendingAlbums', () => ({
+  useTrendingAlbums: () => ({ status: 'ready', albums: [], reload: vi.fn() }),
+}))
 
 vi.mock('../contexts/SessionContext', () => ({
   useSession: () => ({ user: { id: 1, username: 'ana', email: 'ana@example.com' } }),
@@ -86,6 +91,18 @@ const recs = (kind: RecommendationKind, albums: RecommendedAlbum[], reviews: num
   ({ kind, albums, profile: { reviews, favorites: 0 }, evidence: { signals: kind === 'personalizada' ? 3 : 0, required: 3 }, total: albums.length, nextOffset: null })
 
 describe('HomeRecommendations', () => {
+  it('places a standalone album section before activity, without a repeated ML checkbox', async () => {
+    vi.mocked(api.getFeed).mockResolvedValue([review])
+    vi.mocked(api.getRecommendations).mockResolvedValue({ ...recs('personalizada', [album], 5), mlEnabled: true })
+    renderInRouter(<HomePage />)
+    await screen.findByRole('link', { name: /Kind of Blue/ })
+    const section = screen.getByRole('region', { name: 'Para você' })
+    const activity = await screen.findByRole('tabpanel')
+    expect(section.compareDocumentPosition(activity) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(section).getByRole('list', { name: 'Álbuns recomendados' })).toBeTruthy()
+    expect(within(section).queryByRole('checkbox', { name: 'Usar ML experimental no meu feed' })).toBeNull()
+  })
+
   it('lists suggestions with a reason and has no axe violations', async () => {
     vi.mocked(api.getRecommendations).mockResolvedValue(recs('personalizada', [album], 5))
     const { container } = renderInRouter(<HomeRecommendations />)

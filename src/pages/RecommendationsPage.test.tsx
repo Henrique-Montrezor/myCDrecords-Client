@@ -14,6 +14,7 @@ vi.mock('../services/api', async (importOriginal) => ({
   undoDismissRecommendation: vi.fn(),
   getRecommendationPreferences: vi.fn(),
   saveRecommendationPreferences: vi.fn(),
+  saveRecommendationEngine: vi.fn(),
 }))
 
 const disc = (id: string, title: string, reasons: RecommendedAlbum['reasons']): RecommendedAlbum =>
@@ -36,26 +37,48 @@ beforeEach(() => {
   vi.mocked(api.undoDismissRecommendation).mockResolvedValue(undefined)
   vi.mocked(api.getRecommendationPreferences).mockResolvedValue({ genres: [], artists: [] })
   vi.mocked(api.saveRecommendationPreferences).mockImplementation(async (preferences) => preferences)
+  vi.mocked(api.saveRecommendationEngine).mockImplementation(async (enabled) => ({ enabled }))
 })
 afterEach(cleanup)
 
 describe('RecommendationsPage', () => {
-  it('opts into ML explicitly, preserves the mode in requests and labels simulated training', async () => {
-    vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+  it('saves explicit activation, removes the checkbox and uses the account choice on remount', async () => {
+    const active = Object.assign({}, personal, {
+      mlEnabled: true,
       ml: { status: 'active', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure', 'Miles Davis'] },
       albums: [disc('a', 'In the Flat Field', [{ type: 'ml' }])],
-    }))
-    const { container } = renderPage()
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
-    await waitFor(() => expect(api.getRecommendations).toHaveBeenLastCalledWith(expect.any(AbortSignal), 12, 0, 'ml'))
-    expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
+    })
+    vi.mocked(api.getRecommendations).mockResolvedValueOnce(personal).mockResolvedValue(active)
+    const view = renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
+    await waitFor(() => expect(api.saveRecommendationEngine).toHaveBeenCalledWith(true))
     expect(await screen.findByText(/Treinado com perfis fictícios/)).toBeTruthy()
+    expect(screen.queryByRole('checkbox', { name: 'Usar ML experimental no meu feed' })).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Para você', level: 1 }))
+    expect(api.getRecommendations).toHaveBeenLastCalledWith(expect.any(AbortSignal), 12)
     expect(screen.getByText('Por afinidade entre artistas no modelo experimental')).toBeTruthy()
-    expect((await axe.run(container)).violations).toEqual([])
+    expect((await axe.run(view.container)).violations).toEqual([])
+    view.unmount()
+    renderPage()
+    await screen.findByText('Por afinidade entre artistas no modelo experimental')
+    expect(screen.queryByRole('checkbox', { name: 'Usar ML experimental no meu feed' })).toBeNull()
+    expect(api.saveRecommendationEngine).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the activation visible after a failed save and offers retry', async () => {
+    vi.mocked(api.getRecommendations).mockResolvedValue(personal)
+    vi.mocked(api.saveRecommendationEngine).mockRejectedValueOnce(new Error('offline'))
+    renderPage('/recommendations?engine=ml')
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Usar ML experimental no meu feed' }))
+    expect(await screen.findByText(/Não foi possível salvar a escolha/)).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: 'Usar ML experimental no meu feed' })).toHaveProperty('checked', false)
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    await waitFor(() => expect(api.saveRecommendationEngine).toHaveBeenCalledTimes(2))
   })
 
   it('does not describe a cold-start fallback as an ML ranking', async () => {
     vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+      mlEnabled: true,
       ml: { status: 'cold_start', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure'] },
     }))
     renderPage('/recommendations?engine=ml')
@@ -65,6 +88,7 @@ describe('RecommendationsPage', () => {
 
   it('lets a new profile choose supported artists without depending on external search', async () => {
     vi.mocked(api.getRecommendations).mockResolvedValue(Object.assign({}, personal, {
+      mlEnabled: true,
       ml: { status: 'cold_start', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure', 'Miles Davis'] },
     }))
     renderPage('/recommendations?engine=ml')
@@ -141,5 +165,20 @@ describe('RecommendationsPage', () => {
     vi.mocked(api.getRecommendations).mockResolvedValueOnce({ ...personal, kind: 'vazio', albums: [], total: 0, nextOffset: null })
     await userEvent.click(screen.getByRole('button', { name: /Tentar novamente/ }))
     expect(await screen.findByText(/Ainda não há discos para sugerir/)).toBeTruthy()
+  })
+
+  it('reloads from the start instead of mixing engines changed in another settings tab', async () => {
+    const active: Page = {
+      ...personal, mlEnabled: true, albums: [disc('new', 'Novo ranking', [{ type: 'ml' }])], nextOffset: null,
+      ml: { status: 'active', modelVersion: 'artist-bpr-fictional-v1', trainedOn: 'fictional-profiles', supportedArtists: ['The Cure'] },
+    }
+    vi.mocked(api.getRecommendations).mockResolvedValueOnce(personal).mockResolvedValue(active)
+    renderPage()
+    await screen.findByRole('link', { name: 'In the Flat Field' })
+    await userEvent.click(screen.getByRole('button', { name: 'Ver mais sugestões' }))
+    await screen.findByRole('link', { name: 'Novo ranking' })
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'In the Flat Field' })).toBeNull())
+    expect(api.getRecommendations).toHaveBeenLastCalledWith(expect.any(AbortSignal), 12)
+    expect(screen.queryByRole('checkbox', { name: 'Usar ML experimental no meu feed' })).toBeNull()
   })
 })
